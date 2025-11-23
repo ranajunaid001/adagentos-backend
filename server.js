@@ -312,10 +312,11 @@ ${formattedResults}
 
 Your task:
 1. Analyze the actual data from the query results
-2. Answer the user's question with SPECIFIC numbers (exact platform names, dollar amounts, percentages)
-3. Provide 2-3 actionable recommendations based on the data
-4. Use a professional but conversational tone
-5. Keep response concise (3-4 paragraphs max)
+2. Answer the user's question DIRECTLY with SPECIFIC numbers (exact platform names, dollar amounts, percentages)
+3. ONLY provide recommendations if the user's question explicitly asks for advice, strategy, or recommendations (e.g., "where should I invest", "what should I do", "how can I improve")
+4. If the user just asks for data or metrics, simply present the findings without unsolicited advice
+5. Use a professional but conversational tone
+6. Keep response concise (2-3 paragraphs max for data queries, 3-4 for strategy questions)
 
 CRITICAL: You must use the ACTUAL numbers from the query results. Do not make up or estimate numbers.
 
