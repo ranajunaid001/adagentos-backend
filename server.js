@@ -202,6 +202,32 @@ function detectVisualization(sql) {
   };
 }
 
+// Helper: Parse filter values from SQL
+function parseFilterValues(sql, columnName) {
+  // Try single value: column = 'value'
+  const singlePattern = new RegExp(`${columnName}\\s*=\\s*'([^']+)'`, 'i');
+  const singleMatch = sql.match(singlePattern);
+  
+  if (singleMatch) {
+    return [singleMatch[1]];
+  }
+  
+  // Try IN clause: column IN ('value1', 'value2')
+  const inPattern = new RegExp(`${columnName}\\s+IN\\s*\\(([^)]+)\\)`, 'i');
+  const inMatch = sql.match(inPattern);
+  
+  if (inMatch) {
+    // Extract values from IN clause
+    const values = inMatch[1]
+      .split(',')
+      .map(v => v.trim().replace(/'/g, ''))
+      .filter(v => v.length > 0);
+    return values;
+  }
+  
+  return null;
+}
+
 // Execute SQL and aggregate data
 async function executeAndAggregate(sql) {
   console.log('Executing SQL...');
@@ -215,31 +241,34 @@ async function executeAndAggregate(sql) {
     
     if (error) throw error;
     
-    const upperSQL = sql.toUpperCase();
-    
-    // Apply WHERE filters
+    // Apply WHERE filters using improved parsing
     let filteredData = data;
     
-    // Extract and apply filters
-    const platformMatch = sql.match(/platform\s*=\s*'([^']+)'/i);
-    if (platformMatch) {
-      filteredData = filteredData.filter(row => row.platform === platformMatch[1]);
+    // Platform filter
+    const platformValues = parseFilterValues(sql, 'platform');
+    if (platformValues) {
+      filteredData = filteredData.filter(row => platformValues.includes(row.platform));
     }
     
-    const regionMatch = sql.match(/region\s*=\s*'([^']+)'/i);
-    if (regionMatch) {
-      filteredData = filteredData.filter(row => row.region === regionMatch[1]);
+    // Region filter
+    const regionValues = parseFilterValues(sql, 'region');
+    if (regionValues) {
+      filteredData = filteredData.filter(row => regionValues.includes(row.region));
     }
     
-    const ageMatch = sql.match(/age_group\s*=\s*'([^']+)'/i);
-    if (ageMatch) {
-      filteredData = filteredData.filter(row => row.age_group === ageMatch[1]);
+    // Age group filter
+    const ageValues = parseFilterValues(sql, 'age_group');
+    if (ageValues) {
+      filteredData = filteredData.filter(row => ageValues.includes(row.age_group));
     }
     
-    const genderMatch = sql.match(/gender\s*=\s*'([^']+)'/i);
-    if (genderMatch) {
-      filteredData = filteredData.filter(row => row.gender === genderMatch[1]);
+    // Gender filter
+    const genderValues = parseFilterValues(sql, 'gender');
+    if (genderValues) {
+      filteredData = filteredData.filter(row => genderValues.includes(row.gender));
     }
+    
+    console.log(`Filtered data: ${filteredData.length} rows from ${data.length} total`);
     
     // Detect visualization type
     const visualization = detectVisualization(sql);
