@@ -283,7 +283,7 @@ function aggregateByDimension(data, dimension) {
   // Calculate metrics
   Object.keys(aggregated).forEach(key => {
     const d = aggregated[key];
-    d.roas = d.spend > 0 ? parseFloat((d.revenue / d.spend).toFixed(2)) : 0;
+    d.roas = d.spend > 0 ? Math.round(d.revenue / d.spend) : 0;
     d.ctr = d.impressions > 0 ? parseFloat(((d.clicks / d.impressions) * 100).toFixed(2)) : 0;
     d.cpa = d.conversions > 0 ? parseFloat((d.spend / d.conversions).toFixed(2)) : 0;
     d.conversionRate = d.clicks > 0 ? parseFloat(((d.conversions / d.clicks) * 100).toFixed(2)) : 0;
