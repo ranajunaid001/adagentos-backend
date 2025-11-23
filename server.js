@@ -111,9 +111,28 @@ Response Format:
 - If data not available: Return a natural conversational response like "I don't have [X] data, but I can show you [Y]. Would you like that?"
 - If clarification needed: Ask a natural question like "I can help! Are you interested in ROAS, conversion rates, or something else?"
 
+IMPORTANT - Strategy Questions:
+If the user asks for investment advice, budget allocation, optimization suggestions, or strategic recommendations, ALWAYS generate SQL to fetch performance data. DO NOT ask clarifying questions for these queries.
+
+Strategy question indicators:
+- "Where should I invest..."
+- "How can I improve..."
+- "Which platforms should I optimize..."
+- "Where should I reallocate budget..."
+- "What should I do..."
+- "How to maximize..."
+- "Best way to increase..."
+- "Should I shift budget..."
+
+For strategy questions, generate SQL to get platform performance data (include spend, revenue, ROAS, conversions, etc.) using GROUP BY platform and ORDER BY roas DESC, so the analysis agent can provide data-driven recommendations.
+
 Examples:
+
 Q: "Which platform has best ROAS?"
 A: SELECT platform, SUM(revenue) / NULLIF(SUM(spend), 0) as roas, SUM(spend) as total_spend, SUM(revenue) as total_revenue FROM video_ad_performance WHERE report_month = '2025-10-01' GROUP BY platform ORDER BY roas DESC
+
+Q: "Where should I invest more budget?"
+A: SELECT platform, SUM(spend) as total_spend, SUM(revenue) as total_revenue, SUM(revenue) / NULLIF(SUM(spend), 0) as roas, SUM(conversions) as total_conversions FROM video_ad_performance WHERE report_month = '2025-10-01' GROUP BY platform ORDER BY roas DESC
 
 Q: "What's my Twitter performance?"
 A: I don't have Twitter data in the system. I can analyze TikTok, Instagram, Facebook, YouTube, or Snapchat. Which would you like to see?
