@@ -54,6 +54,7 @@ Important SQL Guidelines:
 5. Use GROUP BY for dimensional breakdowns
 6. Use ORDER BY to sort results meaningfully
 7. Limit results to reasonable numbers (LIMIT 20 for safety)
+8. Do NOT include semicolons at the end of queries
 `;
 
 // Call OpenAI
@@ -106,7 +107,7 @@ Your task:
 3. If the question is too vague, ask a clarifying question naturally
 
 Response Format:
-- If generating SQL: Return ONLY the SQL query, nothing else
+- If generating SQL: Return ONLY the SQL query WITHOUT semicolon at the end
 - If data not available: Return a natural conversational response like "I don't have [X] data, but I can show you [Y]. Would you like that?"
 - If clarification needed: Ask a natural question like "I can help! Are you interested in ROAS, conversion rates, or something else?"
 
@@ -156,8 +157,9 @@ function validateSQL(sql) {
     }
   }
   
-  // Check for semicolons (prevents multiple queries)
-  if (sql.includes(';')) {
+  // Check for multiple semicolons (prevents chained queries)
+  const semicolonCount = (sql.match(/;/g) || []).length;
+  if (semicolonCount > 1) {
     return { valid: false, error: 'Multiple queries not allowed' };
   }
   
@@ -167,6 +169,37 @@ function validateSQL(sql) {
   }
   
   return { valid: true };
+}
+
+// Detect visualization type and dimension from SQL
+function detectVisualization(sql) {
+  const upperSQL = sql.toUpperCase();
+  
+  // Check if it has GROUP BY (comparative query)
+  if (upperSQL.includes('GROUP BY')) {
+    let dimension = null;
+    
+    if (upperSQL.includes('GROUP BY PLATFORM')) {
+      dimension = 'platform';
+    } else if (upperSQL.includes('GROUP BY REGION')) {
+      dimension = 'region';
+    } else if (upperSQL.includes('GROUP BY AGE_GROUP')) {
+      dimension = 'age_group';
+    } else if (upperSQL.includes('GROUP BY GENDER')) {
+      dimension = 'gender';
+    }
+    
+    return {
+      type: 'comparison',
+      dimension: dimension
+    };
+  }
+  
+  // No GROUP BY means single specific query
+  return {
+    type: 'single',
+    dimension: null
+  };
 }
 
 // Execute SQL and aggregate data
@@ -182,68 +215,99 @@ async function executeAndAggregate(sql) {
     
     if (error) throw error;
     
-    // Determine what aggregation to perform based on SQL
     const upperSQL = sql.toUpperCase();
     
-    // Check which dimensions are in GROUP BY
-    const groupByPlatform = upperSQL.includes('GROUP BY PLATFORM');
-    const groupByRegion = upperSQL.includes('GROUP BY REGION');
-    const groupByAgeGroup = upperSQL.includes('GROUP BY AGE_GROUP');
-    const groupByGender = upperSQL.includes('GROUP BY GENDER');
-    
-    // Check for WHERE filters
+    // Apply WHERE filters
     let filteredData = data;
     
-    // Extract WHERE conditions
-    if (upperSQL.includes('WHERE')) {
-      const whereMatch = sql.match(/WHERE\s+(.+?)\s+(GROUP|ORDER|LIMIT|$)/i);
-      if (whereMatch) {
-        const whereClause = whereMatch[1];
-        
-        // Parse simple WHERE conditions
-        if (whereClause.includes('platform')) {
-          const platformMatch = whereClause.match(/platform\s*=\s*'([^']+)'/i);
-          if (platformMatch) {
-            filteredData = filteredData.filter(row => row.platform === platformMatch[1]);
-          }
-        }
-        if (whereClause.includes('region')) {
-          const regionMatch = whereClause.match(/region\s*=\s*'([^']+)'/i);
-          if (regionMatch) {
-            filteredData = filteredData.filter(row => row.region === regionMatch[1]);
-          }
-        }
-        if (whereClause.includes('age_group')) {
-          const ageMatch = whereClause.match(/age_group\s*=\s*'([^']+)'/i);
-          if (ageMatch) {
-            filteredData = filteredData.filter(row => row.age_group === ageMatch[1]);
-          }
-        }
-      }
+    // Extract and apply filters
+    const platformMatch = sql.match(/platform\s*=\s*'([^']+)'/i);
+    if (platformMatch) {
+      filteredData = filteredData.filter(row => row.platform === platformMatch[1]);
     }
     
-    // Perform aggregation
-    let aggregated = {};
-    
-    if (groupByPlatform) {
-      aggregated = aggregateByDimension(filteredData, 'platform');
-    } else if (groupByRegion) {
-      aggregated = aggregateByDimension(filteredData, 'region');
-    } else if (groupByAgeGroup) {
-      aggregated = aggregateByDimension(filteredData, 'age_group');
-    } else if (groupByGender) {
-      aggregated = aggregateByDimension(filteredData, 'gender');
-    } else {
-      // Default: aggregate by platform
-      aggregated = aggregateByDimension(filteredData, 'platform');
+    const regionMatch = sql.match(/region\s*=\s*'([^']+)'/i);
+    if (regionMatch) {
+      filteredData = filteredData.filter(row => row.region === regionMatch[1]);
     }
     
-    return aggregated;
+    const ageMatch = sql.match(/age_group\s*=\s*'([^']+)'/i);
+    if (ageMatch) {
+      filteredData = filteredData.filter(row => row.age_group === ageMatch[1]);
+    }
+    
+    const genderMatch = sql.match(/gender\s*=\s*'([^']+)'/i);
+    if (genderMatch) {
+      filteredData = filteredData.filter(row => row.gender === genderMatch[1]);
+    }
+    
+    // Detect visualization type
+    const visualization = detectVisualization(sql);
+    
+    // If single query (no GROUP BY), return null for visualization
+    if (visualization.type === 'single') {
+      const singleResult = aggregateSingleResult(filteredData);
+      return {
+        visualization: null,
+        rawData: singleResult
+      };
+    }
+    
+    // If comparison query (has GROUP BY), aggregate by dimension
+    const aggregated = aggregateByDimension(filteredData, visualization.dimension);
+    
+    return {
+      visualization: {
+        type: 'comparison',
+        dimension: visualization.dimension,
+        data: aggregated
+      },
+      rawData: aggregated
+    };
     
   } catch (error) {
     console.error('SQL Execution Error:', error);
     throw error;
   }
+}
+
+// Helper: Aggregate single result (no grouping)
+function aggregateSingleResult(data) {
+  const result = {
+    spend: 0,
+    impressions: 0,
+    clicks: 0,
+    conversions: 0,
+    revenue: 0,
+    video_starts: 0,
+    views_3s: 0,
+    views_25: 0,
+    views_50: 0,
+    views_100: 0
+  };
+  
+  data.forEach(row => {
+    result.spend += parseFloat(row.spend || 0);
+    result.impressions += parseInt(row.impressions || 0);
+    result.clicks += parseInt(row.clicks || 0);
+    result.conversions += parseInt(row.conversions || 0);
+    result.revenue += parseFloat(row.revenue || 0);
+    result.video_starts += parseInt(row.video_starts || 0);
+    result.views_3s += parseInt(row.views_3s || 0);
+    result.views_25 += parseInt(row.views_25 || 0);
+    result.views_50 += parseInt(row.views_50 || 0);
+    result.views_100 += parseInt(row.views_100 || 0);
+  });
+  
+  // Calculate metrics
+  result.roas = result.spend > 0 ? Math.round(result.revenue / result.spend) : 0;
+  result.ctr = result.impressions > 0 ? parseFloat(((result.clicks / result.impressions) * 100).toFixed(2)) : 0;
+  result.cpa = result.conversions > 0 ? parseFloat((result.spend / result.conversions).toFixed(2)) : 0;
+  result.conversionRate = result.clicks > 0 ? parseFloat(((result.conversions / result.clicks) * 100).toFixed(2)) : 0;
+  result.completionRate = result.video_starts > 0 ? parseFloat(((result.views_100 / result.video_starts) * 100).toFixed(2)) : 0;
+  result.cpm = result.impressions > 0 ? parseFloat(((result.spend / result.impressions) * 1000).toFixed(2)) : 0;
+  
+  return result;
 }
 
 // Helper: Aggregate by dimension
@@ -298,7 +362,7 @@ function aggregateByDimension(data, dimension) {
 async function answerGeneratorAgent(userQuestion, queryResults, sql, agentPrompt) {
   console.log('AnswerGeneratorAgent: Generating answer');
   
-  const systemPrompt = agentPrompt || `You are a marketing performance analyst. Provide specific, data-driven insights with exact numbers from the query results. Always cite actual platform names, dollar amounts, and percentages from the data.`;
+  const systemPrompt = agentPrompt || `You are a marketing performance analyst. Provide specific, data-driven insights with exact numbers from the query results. Always cite actual names, dollar amounts, and percentages from the data.`;
   
   const formattedResults = JSON.stringify(queryResults, null, 2);
   
@@ -312,7 +376,7 @@ ${formattedResults}
 
 Your task:
 1. Analyze the actual data from the query results
-2. Answer the user's question DIRECTLY with SPECIFIC numbers (exact platform names, dollar amounts, percentages)
+2. Answer the user's question DIRECTLY with SPECIFIC numbers (exact names, dollar amounts, percentages)
 3. ONLY provide recommendations if the user's question explicitly asks for advice, strategy, or recommendations (e.g., "where should I invest", "what should I do", "how can I improve")
 4. If the user just asks for data or metrics, simply present the findings without unsolicited advice
 5. Use a professional but conversational tone
@@ -320,10 +384,11 @@ Your task:
 
 CRITICAL: You must use the ACTUAL numbers from the query results. Do not make up or estimate numbers.
 
-Example good response:
-"Facebook shows the highest ROAS at 12.26x with $49,234 in spend, generating $603,421 in revenue. Meanwhile, TikTok has a lower ROAS of 10.08x but receives significantly more budget at $87,123. 
+Example good response for data query:
+"Facebook shows the highest ROAS at 12x with $49,234 in spend, generating $603,421 in revenue. YouTube follows closely at 12x with $68,321 in spend and $836,162 in revenue."
 
-I'd recommend reallocating $20,000 from TikTok to Facebook, which based on Facebook's current performance could generate an additional $245,200 in revenue. Additionally, TikTok's lower ROAS suggests we should review creative performance and audience targeting."
+Example good response for strategy query:
+"Facebook shows the highest ROAS at 12x but only receives $49,234 in spend. I'd recommend reallocating $20,000 from TikTok (which has lower 10x ROAS) to Facebook, which could generate an additional $245,200 in revenue."
 
 Generate your answer now:`;
 
@@ -341,15 +406,19 @@ Generate your answer now:`;
 function formatDataFallback(results) {
   let output = "Here's what I found:\n\n";
   
-  Object.keys(results).forEach(key => {
-    const data = results[key];
-    output += `**${key}**\n`;
-    if (data.roas) output += `- ROAS: ${data.roas}x\n`;
-    if (data.spend) output += `- Spend: $${(data.spend/1000).toFixed(1)}k\n`;
-    if (data.revenue) output += `- Revenue: $${(data.revenue/1000).toFixed(1)}k\n`;
-    if (data.ctr) output += `- CTR: ${data.ctr}%\n`;
-    output += '\n';
-  });
+  if (typeof results === 'object' && results !== null) {
+    Object.keys(results).forEach(key => {
+      const data = results[key];
+      if (typeof data === 'object') {
+        output += `**${key}**\n`;
+        if (data.roas) output += `- ROAS: ${data.roas}x\n`;
+        if (data.spend) output += `- Spend: $${(data.spend/1000).toFixed(1)}k\n`;
+        if (data.revenue) output += `- Revenue: $${(data.revenue/1000).toFixed(1)}k\n`;
+        if (data.ctr) output += `- CTR: ${data.ctr}%\n`;
+        output += '\n';
+      }
+    });
+  }
   
   return output;
 }
@@ -375,30 +444,33 @@ app.post('/chat', async (req, res) => {
         success: true,
         sql: null,
         answer: queryResult.content,
-        metrics: null
+        visualization: null
       });
     }
     
-    const sql = queryResult.content;
+    let sql = queryResult.content;
+    
+    // Remove trailing semicolon if present
+    sql = sql.replace(/;\s*$/, '').trim();
+    
     console.log('Generated SQL:', sql);
     
     // Step 2: Validate SQL
-    const cleanedSQL = sql.replace(/;\s*$/, '').trim();
-    const validation = validateSQL(cleanedSQL);
+    const validation = validateSQL(sql);
     if (!validation.valid) {
       console.log('SQL validation failed:', validation.error);
       return res.json({
         success: false,
         sql: sql,
         answer: "I had trouble creating a safe query for that question. Could you try asking in a different way?",
-        metrics: null
+        visualization: null
       });
     }
     
     // Step 3: Execute SQL and aggregate
-    let queryResults;
+    let result;
     try {
-      queryResults = await executeAndAggregate(sql);
+      result = await executeAndAggregate(sql);
       console.log('Query executed successfully');
       
     } catch (error) {
@@ -407,25 +479,26 @@ app.post('/chat', async (req, res) => {
         success: false,
         sql: sql,
         answer: "I ran into an issue retrieving that data. Could you try rephrasing your question? For example: 'Which platform has the best ROAS?' or 'Show me conversion rates by age group'",
-        metrics: null
+        visualization: null
       });
     }
     
     // Step 4: Answer Generator Agent
     const answer = await answerGeneratorAgent(
       message,
-      queryResults,
+      result.rawData,
       sql,
       agentPrompts?.answerGeneratorAgent
     );
     
     console.log('Answer generated successfully');
+    console.log('Visualization type:', result.visualization ? result.visualization.type : 'none');
     
     res.json({
       success: true,
       sql: sql,
       answer: answer,
-      metrics: queryResults
+      visualization: result.visualization
     });
     
   } catch (error) {
@@ -434,7 +507,7 @@ app.post('/chat', async (req, res) => {
       success: false,
       sql: null,
       answer: 'I encountered an unexpected error. Please try again or rephrase your question.',
-      metrics: null
+      visualization: null
     });
   }
 });
