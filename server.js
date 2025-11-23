@@ -247,6 +247,18 @@ function parseFilterValues(sql, columnName) {
   return null;
 }
 
+// Detect if query is asking for strategy/recommendations
+function isStrategyQuery(userQuestion) {
+  const strategyKeywords = [
+    'invest', 'budget', 'allocate', 'reallocate', 'shift', 'optimize',
+    'improve', 'maximize', 'should i', 'what should', 'how can i',
+    'recommend', 'suggestion', 'advice', 'strategy', 'best way'
+  ];
+  
+  const lowerQuestion = userQuestion.toLowerCase();
+  return strategyKeywords.some(keyword => lowerQuestion.includes(keyword));
+}
+
 // Execute SQL and aggregate data
 async function executeAndAggregate(sql) {
   console.log('Executing SQL...');
@@ -410,11 +422,81 @@ function aggregateByDimension(data, dimension) {
 async function answerGeneratorAgent(userQuestion, queryResults, sql, agentPrompt) {
   console.log('AnswerGeneratorAgent: Generating answer');
   
+  // Detect if this is a strategy question
+  const isStrategy = isStrategyQuery(userQuestion);
+  
   const systemPrompt = agentPrompt || `You are a marketing performance analyst. Provide specific, data-driven insights with exact numbers from the query results. Always cite actual names, dollar amounts, and percentages from the data.`;
   
-  const formattedResults = JSON.stringify(queryResults, null, 2);
+  // Sort data by ROAS for better analysis
+  let sortedResults = queryResults;
+  if (typeof queryResults === 'object' && !Array.isArray(queryResults)) {
+    const entries = Object.entries(queryResults);
+    entries.sort((a, b) => (b[1].roas || 0) - (a[1].roas || 0));
+    sortedResults = Object.fromEntries(entries);
+  }
   
-  const userPrompt = `User Question: "${userQuestion}"
+  const formattedResults = JSON.stringify(sortedResults, null, 2);
+  
+  let userPrompt;
+  
+  if (isStrategy) {
+    // Strategy-specific prompt with structured output requirements
+    userPrompt = `User Question: "${userQuestion}"
+
+SQL Query Executed:
+${sql}
+
+Query Results (SORTED BY ROAS - HIGHEST TO LOWEST):
+${formattedResults}
+
+This is a STRATEGY/INVESTMENT question. You must provide SPECIFIC, ACTIONABLE recommendations.
+
+Your response MUST follow this structure:
+
+**Performance Summary:**
+→ List each platform with its ROAS and spend (highest ROAS first)
+→ Identify the efficiency gap between best and worst performers
+
+**Key Insight:**
+→ Identify which platforms have HIGH ROAS but LOW spend (underinvested opportunities)
+→ Identify which platforms have LOW ROAS but HIGH spend (inefficient allocation)
+
+**Recommendation:**
+→ State EXACTLY which platform(s) to reduce budget from
+→ State EXACTLY which platform(s) to increase budget to
+→ Provide SPECIFIC dollar amount to reallocate (e.g., "$25,000")
+→ Calculate the expected revenue impact using actual ROAS numbers
+
+Example format:
+"**Performance Summary:**
+→ TikTok: 11x ROAS, $67,079 spend
+→ YouTube: 7x ROAS, $67,792 spend
+→ Instagram: 3x ROAS, $67,474 spend
+→ Facebook: 2x ROAS, $69,707 spend
+→ Snapchat: 2x ROAS, $65,444 spend
+
+**Key Insight:**
+TikTok delivers 11x ROAS (highest) while Facebook and Snapchat only achieve 2x ROAS despite receiving similar or higher spend. This represents a massive efficiency gap.
+
+**Recommendation:**
+Reallocate $40,000 total:
+→ Reduce Facebook budget by $25,000 (from $69,707 to $44,707)
+→ Reduce Snapchat budget by $15,000 (from $65,444 to $50,444)
+→ Increase TikTok budget by $40,000 (from $67,079 to $107,079)
+
+**Expected Impact:**
+This reallocation would generate approximately $360,000 in additional revenue:
+→ TikTok gain: $40,000 × 11 ROAS = $440,000 additional revenue
+→ Facebook/Snapchat loss: $40,000 × 2 ROAS = $80,000 revenue reduction
+→ Net gain: $360,000"
+
+CRITICAL: Use ACTUAL numbers from the query results. Do not make up or estimate any figures.
+
+Generate your strategic recommendation now:`;
+    
+  } else {
+    // Regular data query prompt
+    userPrompt = `User Question: "${userQuestion}"
 
 SQL Query Executed:
 ${sql}
@@ -425,28 +507,21 @@ ${formattedResults}
 Your task:
 1. Analyze the actual data from the query results
 2. Answer the user's question DIRECTLY with SPECIFIC numbers (exact names, dollar amounts, percentages)
-3. ONLY provide recommendations if the user's question explicitly asks for advice, strategy, or recommendations (e.g., "where should I invest", "what should I do", "how can I improve")
-4. If the user just asks for data or metrics, simply present the findings without unsolicited advice
-5. Use a professional but conversational tone
-6. Keep response concise (2-3 paragraphs max for data queries, 3-4 for strategy questions)
+3. Use a professional but conversational tone
+4. Keep response concise (2-3 paragraphs max)
 
 CRITICAL: You must use the ACTUAL numbers from the query results. Do not make up or estimate numbers.
 
-Example good response for data query:
-"Facebook shows the highest ROAS at 12x with $49,234 in spend, generating $603,421 in revenue. YouTube follows closely at 12x with $68,321 in spend and $836,162 in revenue."
-
-Example good response for strategy query:
-"Facebook shows the highest ROAS at 12x but only receives $49,234 in spend. I'd recommend reallocating $20,000 from TikTok (which has lower 10x ROAS) to Facebook, which could generate an additional $245,200 in revenue."
-
 Generate your answer now:`;
+  }
 
   try {
-    const response = await callLLM(systemPrompt, userPrompt, 1500);
+    const response = await callLLM(systemPrompt, userPrompt, isStrategy ? 2000 : 1500);
     return response;
     
   } catch (error) {
     console.error('Error in answerGeneratorAgent:', error);
-    return formatDataFallback(queryResults);
+    return formatDataFallback(sortedResults);
   }
 }
 
@@ -459,10 +534,10 @@ function formatDataFallback(results) {
       const data = results[key];
       if (typeof data === 'object') {
         output += `**${key}**\n`;
-        if (data.roas) output += `- ROAS: ${data.roas}x\n`;
-        if (data.spend) output += `- Spend: $${(data.spend/1000).toFixed(1)}k\n`;
-        if (data.revenue) output += `- Revenue: $${(data.revenue/1000).toFixed(1)}k\n`;
-        if (data.ctr) output += `- CTR: ${data.ctr}%\n`;
+        if (data.roas) output += `→ ROAS: ${data.roas}x\n`;
+        if (data.spend) output += `→ Spend: $${(data.spend/1000).toFixed(1)}k\n`;
+        if (data.revenue) output += `→ Revenue: $${(data.revenue/1000).toFixed(1)}k\n`;
+        if (data.ctr) output += `→ CTR: ${data.ctr}%\n`;
         output += '\n';
       }
     });
