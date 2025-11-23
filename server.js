@@ -382,7 +382,8 @@ app.post('/chat', async (req, res) => {
     console.log('Generated SQL:', sql);
     
     // Step 2: Validate SQL
-    const validation = validateSQL(sql);
+    const cleanedSQL = sql.replace(/;\s*$/, '').trim();
+    const validation = validateSQL(cleanedSQL);
     if (!validation.valid) {
       console.log('SQL validation failed:', validation.error);
       return res.json({
