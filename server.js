@@ -546,8 +546,18 @@ function aggregateByDimension(data, dimension) {
 async function answerGeneratorAgent(userQuestion, queryResults, sql, agentPrompt) {
   console.log('AnswerGeneratorAgent: Generating answer');
   
+  // Extract conversation context and current question
+  let contextString = '';
+  let currentQuestion = userQuestion;
+  
+  if (userQuestion.includes('Previous conversation:') && userQuestion.includes('Current question:')) {
+    const parts = userQuestion.split('Current question:');
+    contextString = parts[0].trim();
+    currentQuestion = parts[1].trim();
+  }
+  
   // Detect if this is a strategy question
-  const isStrategy = isStrategyQuery(userQuestion);
+  const isStrategy = isStrategyQuery(currentQuestion);
   
   // System prompt - concise and focused
   const systemPrompt = agentPrompt || `You are a marketing performance analyst. Transform data into actionable insights with precise numbers and clear recommendations.`;
@@ -568,30 +578,41 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, agentPrompt
     // Strategy prompt using best practices
     userPrompt = `Analyze this marketing data and provide strategic recommendations.
 
+<conversation_context>
+"""
+${contextString}
+"""
+</conversation_context>
+
+<current_question>
+"""
+${currentQuestion}
+"""
+</current_question>
+
 <context>
-User Question: "${userQuestion}"
 SQL Query: ${sql}
 </context>
 
 <data>
+"""
 ${formattedResults}
+"""
 </data>
 
 <instructions>
-Step 1: Identify the budget action type
+Step 1: Read the conversation context. When the user uses pronouns like "there", "it", "that", refer to the previously mentioned item.
+Step 2: Identify the budget action type
 - CUT: "reduce budget", "cut $X", "save money" → Decrease total budget
 - ADD: "have $X to invest", "extra budget", "additional $X" → Increase total budget  
 - REALLOCATE: "optimize", "shift", "move budget" → Keep total budget same
-
-Step 2: Identify the dimension in the data
+Step 3: Identify the dimension in the data
 - Look at the data keys: platform, region, age_group, or gender
-
-Step 3: Apply the appropriate strategy
+Step 4: Apply the appropriate strategy
 - For CUT: Remove from lowest ROAS segments until target reached
 - For ADD: Distribute using performance tiers (50% top, 30% mid, 20% low)
 - For REALLOCATE: Move 30-40% from worst to best performers
-
-Step 4: Calculate exact impact using actual ROAS values
+Step 5: Calculate exact impact using actual ROAS values
 </instructions>
 
 <formatting>
@@ -631,22 +652,44 @@ Total budget: **$360k** → **$260k**
 Generate your response following the structure shown in the examples.`;
     
   } else {
-    // Regular query prompt - simplified
+    // Regular query prompt with context handling
     userPrompt = `Answer this marketing question using the provided data.
 
+<conversation_context>
+"""
+${contextString}
+"""
+</conversation_context>
+
+<current_question>
+"""
+${currentQuestion}
+"""
+</current_question>
+
+<pronoun_resolution>
+When the user says "there", "it", "that", or "those", check the conversation context to identify what they're referring to.
+Examples:
+- "How much am I spending there?" where context shows TikTok was just discussed = Answer only about TikTok spend
+- "What about that platform?" where context shows Instagram was mentioned = Answer about Instagram
+</pronoun_resolution>
+
 <context>
-User Question: "${userQuestion}"
 SQL Query: ${sql}
 </context>
 
 <data>
+"""
 ${formattedResults}
+"""
 </data>
 
 <instructions>
-1. Answer the question directly using exact numbers from the data
-2. Keep response concise (2-3 paragraphs maximum)
-3. Use conversational tone
+Step 1: Check if the user is using pronouns that refer to previous context
+Step 2: If yes, identify the specific item from the conversation context
+Step 3: Answer focusing ONLY on that specific item, not all data
+Step 4: If no pronouns, answer the question directly using exact numbers
+Step 5: Keep response concise (2-3 paragraphs maximum)
 </instructions>
 
 <formatting>
@@ -659,13 +702,17 @@ ${formattedResults}
 </formatting>
 
 <example>
+Context: User previously asked about TikTok
+Question: "How much am I spending there?"
+Response: You're spending **$70,493** on **TikTok**.
+
 Question: "Which gender has highest CTR?"
 Response: The gender with the highest **CTR** is **unknown** at **2.5%**, followed by **male** at **2.4%** and **female** at **2.2%**.
 </example>
 
 Generate your answer now.`;
   }
-
+  
   try {
     const response = await callLLM(systemPrompt, userPrompt, isStrategy ? 2000 : 1500);
     return response;
