@@ -718,7 +718,6 @@ app.post('/chat', async (req, res) => {
     // Step 1: Query Generator Agent
     const queryResult = await queryGeneratorAgent(
       contextString + 'Current question: ' + message, 
-      queryPrompt
     );
     
     // If not SQL (conversational response), return immediately
@@ -771,8 +770,7 @@ app.post('/chat', async (req, res) => {
     const answer = await answerGeneratorAgent(
       contextString + 'Current question: ' + message,
       result.rawData,
-      sql,
-      answerPrompt
+      sql
     );
     
     console.log('Answer generated successfully');
