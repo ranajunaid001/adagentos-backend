@@ -461,6 +461,7 @@ function aggregateSingleResult(data) {
   result.cpa = result.conversions > 0 ? parseFloat((result.spend / result.conversions).toFixed(2)) : 0;
   result.conversionRate = result.clicks > 0 ? parseFloat(((result.conversions / result.clicks) * 100).toFixed(2)) : 0;
   result.completionRate = result.video_starts > 0 ? parseFloat(((result.views_100 / result.video_starts) * 100).toFixed(2)) : 0;
+  result.video_completion_rate = result.video_starts > 0 ? parseFloat(((result.views_100 / result.video_starts) * 100).toFixed(2)) : 0;
   result.cpm = result.impressions > 0 ? parseFloat(((result.spend / result.impressions) * 1000).toFixed(2)) : 0;
   
   return result;
@@ -508,6 +509,7 @@ function aggregateByDimension(data, dimension) {
     d.cpa = d.conversions > 0 ? parseFloat((d.spend / d.conversions).toFixed(2)) : 0;
     d.conversionRate = d.clicks > 0 ? parseFloat(((d.conversions / d.clicks) * 100).toFixed(2)) : 0;
     d.completionRate = d.video_starts > 0 ? parseFloat(((d.views_100 / d.video_starts) * 100).toFixed(2)) : 0;
+    d.video_completion_rate = d.video_starts > 0 ? parseFloat(((d.views_100 / d.video_starts) * 100).toFixed(2)) : 0;
     d.cpm = d.impressions > 0 ? parseFloat(((d.spend / d.impressions) * 1000).toFixed(2)) : 0;
   });
   
