@@ -494,7 +494,7 @@ FORMATTING RULES:
   let userPrompt;
   
   if (isStrategy) {
-    // UPDATED: More flexible strategy prompt
+    // UPDATED: Multi-dimensional strategy prompt
     userPrompt = `User Question: "${userQuestion}"
 
 SQL Query Executed:
@@ -505,48 +505,80 @@ ${formattedResults}
 
 This is a STRATEGY/INVESTMENT question. Provide SPECIFIC, ACTIONABLE recommendations with BOLD formatting.
 
-CRITICAL - READ THE USER'S QUESTION CAREFULLY:
-1. If user specifies an exact amount (e.g., "$50,000 to reallocate"), use THAT amount
-2. If user asks about a specific platform problem (e.g., "Snapchat ROAS is low"), focus on solutions for THAT platform
-3. If user asks general optimization, then do broad reallocation
+CRITICAL - IDENTIFY THE DIMENSION:
+First, determine what dimension the user is asking about:
+- PLATFORMS (TikTok, Facebook, Instagram, YouTube, Snapchat)
+- REGIONS (Northeast, Midwest, South, West)
+- AGE GROUPS (18-24, 25-34, 35-44, 45-54, 55-64, 65+)
+- GENDERS (male, female, unknown)
+- Or a combination/general optimization
 
-QUESTION TYPES AND RESPONSES:
+FLEXIBLE RESPONSE FRAMEWORK:
 
-Type 1 - Specific Amount Questions (e.g., "I have $50,000 to reallocate"):
-- Use the EXACT amount the user specified
-- Identify where to take it from (lowest ROAS platforms)
-- Identify where to put it (highest ROAS platform)
-- Don't use percentage rules, use their amount
+1. READ THE USER'S QUESTION CAREFULLY:
+- If they specify an exact amount (e.g., "$50,000"), use THAT amount
+- If they ask about a specific segment (e.g., "South region is underperforming"), focus on THAT
+- If they mention a specific dimension, analyze within that dimension
 
-Type 2 - Specific Platform Problems (e.g., "Snapchat ROAS is too low"):
-- Focus on fixing THAT platform, options include:
-  a) Reduce budget (specify how much)
-  b) Pause the platform entirely
-  c) Reallocate portion of its budget
-  d) Suggest optimization tactics (audience, creative, etc.)
-- Don't just give generic reallocation advice
+2. DIMENSION-AWARE ANALYSIS:
+For any dimension (platform, region, age, gender):
+- Identify the TOP performers (highest ROAS/metrics)
+- Identify the BOTTOM performers (lowest ROAS/metrics)
+- Calculate efficiency gaps
+- Consider practical constraints (can't eliminate all regions, etc.)
 
-Type 3 - General Optimization:
-- Use 30-40% reallocation from worst to best
-- Follow standard optimization logic
+3. QUESTION TYPES:
 
-Type 4 - New Budget Questions (e.g., "I have $100k additional budget"):
-- Recommend allocating new budget to highest ROAS platforms
-- Consider diminishing returns (maybe 70% to top, 30% to second)
+Type A - Specific Amount + Dimension:
+"I have $50,000 to reallocate across regions"
+→ Use exact $50,000
+→ Move from lowest ROAS regions to highest
 
-Your response structure:
+Type B - Problem with Specific Segment:
+"The 65+ age group has terrible ROAS"
+→ Options: Reduce budget, reallocate, optimize targeting
+→ Focus on fixing that specific segment
+
+Type C - Optimization within Dimension:
+"How should I optimize gender targeting?"
+→ Analyze all genders, recommend shifts
+
+Type D - Cross-Dimensional:
+"Should I focus more on young users in the Midwest?"
+→ Consider multiple dimensions together
+
+Type E - New Budget Allocation:
+"I have $100k extra, which age groups should get it?"
+→ Allocate to highest performing segments
+
+RESPONSE STRUCTURE:
 
 **Current Performance:**
-→ Show relevant metrics based on the question
+→ List all segments in the relevant dimension with their metrics
+→ Highlight the best and worst performers
 
 **Analysis:**
-→ Directly address what the user asked about
+→ Directly address the user's specific question
+→ Identify opportunities and inefficiencies
+→ Consider practical constraints
 
 **Recommendation:**
-→ Specific to their question (use their amounts, focus on their concerns)
+→ Specific to their question and dimension
+→ Use their amounts if specified
+→ Provide clear from/to allocations
+→ Consider diminishing returns for large shifts
 
 **Expected Impact:**
-→ Calculate using actual numbers
+→ Calculate using actual ROAS/metrics from data
+→ Show gains and losses
+→ Net impact
+
+IMPORTANT RULES:
+- Don't assume it's always about platforms - check what dimension is in the data
+- If user specifies amounts, use them exactly
+- If focusing on one segment's problem, give targeted solutions
+- Consider practical business constraints (can't abandon entire demographics)
+- Use actual values from the query results, never hardcode
 
 Generate your strategic recommendation now:`;
     
