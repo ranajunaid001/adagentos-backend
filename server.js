@@ -472,14 +472,16 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, agentPrompt
   // Detect if this is a strategy question
   const isStrategy = isStrategyQuery(userQuestion);
   
-  // Updated prompt with bold formatting instructions
+  // Updated prompt with bold formatting instructions and NO TABLES
   const systemPrompt = agentPrompt || `You are a marketing performance analyst. Provide specific, data-driven insights with exact numbers from the query results. Always cite actual names, dollar amounts, and percentages from the data.
 
 FORMATTING RULES:
 - Make all numbers bold using **number** format (e.g., **2.5%**, **$450,000**, **6,213,899**)
 - Make all dimension values bold (e.g., **TikTok**, **Northeast**, **male**, **18-24**)
 - Make all metric names bold when first introduced (e.g., **CTR**, **ROAS**, **conversion rate**)
-- Use markdown bold formatting: **text**`;
+- Use markdown bold formatting: **text**
+- NEVER use markdown tables - use bullet points with → arrows instead
+- Format lists like: → **Platform**: **$X** spend, **$Y** revenue, **Z%** metric`;
   
   // Sort data by ROAS for better analysis
   let sortedResults = queryResults;
@@ -494,7 +496,7 @@ FORMATTING RULES:
   let userPrompt;
   
   if (isStrategy) {
-    // UPDATED: Multi-dimensional strategy prompt
+    // Updated multi-dimensional strategy prompt with NO TABLES instruction
     userPrompt = `User Question: "${userQuestion}"
 
 SQL Query Executed:
@@ -573,17 +575,29 @@ RESPONSE STRUCTURE:
 → Show gains and losses
 → Net impact
 
+FORMATTING REQUIREMENTS:
+- NO MARKDOWN TABLES - they don't render in the UI
+- Use bullet points with → arrows for all data listings
+- Format performance data as: → **Segment**: **$X** spend, **$Y** revenue, **Z** ROAS
+- Keep it clean and scannable
+
+Example format for Current Performance:
+→ **TikTok**: **$70,493** spend, **$560,000** revenue, **8x** ROAS
+→ **YouTube**: **$71,200** spend, **$370,000** revenue, **5x** ROAS
+(NOT a table with | | | separators)
+
 IMPORTANT RULES:
 - Don't assume it's always about platforms - check what dimension is in the data
 - If user specifies amounts, use them exactly
 - If focusing on one segment's problem, give targeted solutions
 - Consider practical business constraints (can't abandon entire demographics)
 - Use actual values from the query results, never hardcode
+- NEVER create markdown tables - always use bullet point lists
 
 Generate your strategic recommendation now:`;
     
   } else {
-    // Regular data query prompt (unchanged)
+    // Regular data query prompt with no tables instruction
     userPrompt = `User Question: "${userQuestion}"
 
 SQL Query Executed:
@@ -598,6 +612,7 @@ Your task:
 3. Use a professional but conversational tone
 4. Keep response concise (2-3 paragraphs max)
 5. Format all numbers, metrics, and dimension values in bold using **text** markdown format
+6. NEVER use markdown tables - use bullet points with → arrows for lists
 
 CRITICAL: You must use the ACTUAL numbers from the query results. Do not make up or estimate numbers.
 
@@ -605,6 +620,10 @@ Examples of proper formatting:
 - "The gender with the highest **CTR** is **unknown** at **2.5%**"
 - "**TikTok** leads with **$743,679** in revenue"
 - "The **Midwest** region has a **ROAS** of **5x**"
+
+For lists, use this format:
+→ **Platform A**: **2.5%** CTR, **$45k** spend
+→ **Platform B**: **2.1%** CTR, **$38k** spend
 
 Generate your answer now:`;
   }
