@@ -105,23 +105,21 @@ Rules:
 - Use proper aggregations with GROUP BY when needed
 - Include ORDER BY for meaningful results
 - LIMIT results appropriately
-- NO semicolons at the end
-- RESPOND WITH ONLY THE SQL QUERY, NO EXPLANATIONS`;
+- NO semicolons at the end`;
 
   const userPrompt = `Convert this question to SQL: "${userQuestion}"
 
-Important: Return ONLY the SQL query, no explanations or markdown. If the question cannot be answered, return only "NOT_POSSIBLE"`;
+If the question cannot be answered with the available data, explain what data is available instead of generating SQL.
+
+Return ONLY the SQL query, no explanations or code blocks.`;
 
   try {
     const response = await callLLM(systemPrompt, userPrompt, 500);
     
-    let content = response.trim();
-    
-    // Remove markdown code blocks if present
-    content = content.replace(/```sql\n?/g, '').replace(/```\n?/g, '').trim();
+    const content = response.trim();
     
     // Check if it's SQL or conversational
-    const isSQL = content.toUpperCase().includes('SELECT') && !content.includes('NOT_POSSIBLE');
+    const isSQL = content.toUpperCase().includes('SELECT');
     
     return {
       isSQL,
