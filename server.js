@@ -672,18 +672,28 @@ function formatDataFallback(results) {
   return output;
 }
 
+
 // Main chat endpoint
 app.post('/chat', async (req, res) => {
   try {
-    const { message, agentPrompts } = req.body;
+    const { message, agentPrompts, agentConfig } = req.body;
     
     console.log('\n=== New Chat Request ===');
     console.log('User message:', message);
     
+    // Handle both old and new config formats
+    let queryPrompt = agentPrompts?.queryGeneratorAgent;
+    let answerPrompt = agentPrompts?.answerGeneratorAgent;
+    
+    if (agentConfig) {
+      queryPrompt = agentConfig.queryGenerator?.systemPrompt || queryPrompt;
+      answerPrompt = agentConfig.analysisAgent?.systemPrompt || answerPrompt;
+    }
+    
     // Step 1: Query Generator Agent
     const queryResult = await queryGeneratorAgent(
       message, 
-      agentPrompts?.queryGeneratorAgent
+      queryPrompt
     );
     
     // If not SQL (conversational response), return immediately
@@ -737,7 +747,7 @@ app.post('/chat', async (req, res) => {
       message,
       result.rawData,
       sql,
-      agentPrompts?.answerGeneratorAgent
+      answerPrompt
     );
     
     console.log('Answer generated successfully');
@@ -760,7 +770,6 @@ app.post('/chat', async (req, res) => {
     });
   }
 });
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
@@ -769,7 +778,6 @@ app.get('/health', (req, res) => {
     agents: ['queryGeneratorAgent', 'answerGeneratorAgent']
   });
 });
-
 app.listen(PORT, () => {
   console.log(`\n🚀 AdAgentOS Backend running on port ${PORT}`);
   console.log(`📊 Using model: ${MODEL_NAME}`);
