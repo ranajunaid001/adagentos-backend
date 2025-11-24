@@ -225,7 +225,8 @@ function detectRequestedMetrics(sql, userQuestion) {
   
   // Cost metrics
   if (upperSQL.includes('CPA') || lowerQuestion.includes('cost per acquisition') || 
-      lowerQuestion.includes('cpa') || lowerQuestion.includes('cost per conversion')) {
+      lowerQuestion.includes('cpa') || lowerQuestion.includes('cost per conversion') ||
+      lowerQuestion.includes('acquisition cost')) {
     return ['cpa'];
   }
   
