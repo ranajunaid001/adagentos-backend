@@ -190,46 +190,95 @@ function validateSQL(sql) {
   return { valid: true };
 }
 
-// Detect requested metrics from SQL
+// Detect requested metrics from SQL and user question
 function detectRequestedMetrics(sql, userQuestion) {
   const upperSQL = sql.toUpperCase();
   const lowerQuestion = userQuestion.toLowerCase();
   
-  // Check SQL for specific metric calculations
-  if (upperSQL.includes('CTR') || lowerQuestion.includes('ctr') || lowerQuestion.includes('click-through')) {
-    return ['ctr'];
-  }
-  if (upperSQL.includes('CONVERSION_RATE') || lowerQuestion.includes('conversion rate')) {
-    return ['conversion_rate'];
-  }
-  if (upperSQL.includes('CPA') || lowerQuestion.includes('cost per acquisition') || lowerQuestion.includes('cpa')) {
-    return ['cpa'];
-  }
-  if (upperSQL.includes('CPM') || lowerQuestion.includes('cpm') || lowerQuestion.includes('cost per thousand')) {
-    return ['cpm'];
-  }
-  if (upperSQL.includes('COMPLETION_RATE') || lowerQuestion.includes('completion') || lowerQuestion.includes('video completion')) {
-    return ['completion_rate'];
+  // Video metrics
+  if (upperSQL.includes('VIDEO_COMPLETION_RATE') || 
+      lowerQuestion.includes('video completion') || 
+      lowerQuestion.includes('completion rate')) {
+    return ['video_completion_rate'];
   }
   
-  // Check for specific column requests
+  if (lowerQuestion.includes('video') && 
+      (lowerQuestion.includes('funnel') || lowerQuestion.includes('drop') || lowerQuestion.includes('retention'))) {
+    return ['video_funnel'];
+  }
+  
+  if (lowerQuestion.includes('3-second') || lowerQuestion.includes('3 second') || 
+      upperSQL.includes('VIEWS_3S')) {
+    return ['video_retention'];
+  }
+  
+  // Engagement metrics
+  if (upperSQL.includes('CTR') || lowerQuestion.includes('ctr') || 
+      lowerQuestion.includes('click-through') || lowerQuestion.includes('click through')) {
+    return ['ctr'];
+  }
+  
+  if (upperSQL.includes('CONVERSION_RATE') || 
+      (lowerQuestion.includes('conversion') && lowerQuestion.includes('rate'))) {
+    return ['conversion_rate'];
+  }
+  
+  // Cost metrics
+  if (upperSQL.includes('CPA') || lowerQuestion.includes('cost per acquisition') || 
+      lowerQuestion.includes('cpa') || lowerQuestion.includes('cost per conversion')) {
+    return ['cpa'];
+  }
+  
+  if (upperSQL.includes('CPM') || lowerQuestion.includes('cpm') || 
+      lowerQuestion.includes('cost per thousand') || lowerQuestion.includes('cost per mille')) {
+    return ['cpm'];
+  }
+  
+  // Volume metrics
   if (lowerQuestion.includes('conversion') && !lowerQuestion.includes('rate')) {
     return ['conversions'];
   }
-  if (lowerQuestion.includes('click') && !lowerQuestion.includes('through')) {
+  
+  if (lowerQuestion.includes('click') && !lowerQuestion.includes('through') && !lowerQuestion.includes('rate')) {
     return ['clicks'];
   }
+  
   if (lowerQuestion.includes('impression')) {
     return ['impressions'];
   }
+  
+  // Financial metrics
   if (lowerQuestion.includes('spend') && !lowerQuestion.includes('revenue')) {
     return ['spend'];
   }
+  
   if (lowerQuestion.includes('revenue') && !lowerQuestion.includes('spend')) {
     return ['revenue'];
   }
   
-  // Default to financial metrics for general performance questions
+  if (upperSQL.includes('ROAS') || lowerQuestion.includes('roas') || 
+      lowerQuestion.includes('return on ad')) {
+    return ['roas'];
+  }
+  
+  // Strategy/Investment questions
+  if (lowerQuestion.includes('invest') || lowerQuestion.includes('budget') || 
+      lowerQuestion.includes('allocate') || lowerQuestion.includes('optimize')) {
+    return ['financial'];
+  }
+  
+  // Performance questions (general)
+  if (lowerQuestion.includes('performance') || lowerQuestion.includes('compare') || 
+      lowerQuestion.includes('best') || lowerQuestion.includes('top')) {
+    // Check what aspect of performance
+    if (lowerQuestion.includes('video')) {
+      return ['video_completion_rate'];
+    } else {
+      return ['financial'];
+    }
+  }
+  
+  // Default to financial metrics for general questions
   return ['financial'];
 }
 
