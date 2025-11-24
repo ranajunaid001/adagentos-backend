@@ -496,7 +496,7 @@ FORMATTING RULES:
   let userPrompt;
   
   if (isStrategy) {
-    // Updated multi-dimensional strategy prompt with NEW BUDGET handling
+    // Updated strategy prompt with proper CUT vs REALLOCATE logic
     userPrompt = `User Question: "${userQuestion}"
 
 SQL Query Executed:
@@ -513,107 +513,103 @@ First, determine what dimension the user is asking about:
 - REGIONS (Northeast, Midwest, South, West)
 - AGE GROUPS (18-24, 25-34, 35-44, 45-54, 55-64, 65+)
 - GENDERS (male, female, unknown)
-- Or a combination/general optimization
 
-CRITICAL - NEW BUDGET VS REALLOCATION:
-Identify which type of budget question this is:
+CRITICAL - IDENTIFY THE BUDGET ACTION TYPE:
 
-1. NEW/ADDITIONAL BUDGET indicators:
-- "I have $X extra/additional to invest"
-- "I have $X to distribute/allocate" (without mentioning moving/shifting)
-- "We just got $X more budget"
-- "I have new budget of $X"
+1. CUT/REDUCE TOTAL BUDGET (Total budget decreases):
+- "I need to cut $X from the budget"
+- "Reduce spending by $X"
+- "We need to save $X"
+- "Cut budget by X%"
+→ ACTION: Remove money from worst performers, DO NOT reallocate to others
+→ Total budget MUST decrease by the specified amount
 
-2. REALLOCATION indicators:
+2. REALLOCATE/OPTIMIZE (Total budget stays same):
 - "Shift/move/reallocate budget"
 - "Optimize current spending"
-- "Where should I cut and where should I add"
+- "Improve efficiency"
+- "Which should get more/less"
+→ ACTION: Move money from worst to best performers
+→ Total budget remains constant
 
-FLEXIBLE RESPONSE FRAMEWORK:
+3. ADD/INCREASE BUDGET (Total budget increases):
+- "I have $X extra/additional to invest"
+- "I have $X to distribute"
+- "We got $X more budget"
+→ ACTION: Add new money using weighted tier allocation
+→ Total budget increases by the specified amount
 
-1. FOR NEW/ADDITIONAL BUDGET:
-Use Weighted Tier Allocation:
-- Group segments by performance tiers (e.g., 5x ROAS, 4x ROAS, 3x ROAS)
-- Allocate new budget weighted by tier:
-  * Top tier (highest ROAS): 40-50% of new budget
-  * Second tier: 25-35% of new budget
-  * Third tier: 15-20% of new budget
-  * Bottom tier: 5-10% of new budget
-- ADD these amounts to existing spend, don't replace
+RESPONSE FRAMEWORK BY TYPE:
 
-Example: User has $100k new budget with segments at 5x, 4x, and 3x ROAS
-→ Give 40-50% split among 5x ROAS segments
-→ Give 30% split among 4x ROAS segments  
-→ Give 20% split among 3x ROAS segments
-→ Reserve 10% for testing/buffer
+FOR BUDGET CUTS:
+1. Identify lowest performing segments
+2. Cut from worst performers first until you reach the target cut amount
+3. DO NOT reallocate to other segments
+4. Show new reduced totals
+5. Calculate revenue impact of cuts
 
-2. FOR REALLOCATION OF EXISTING BUDGET:
-- Move 30-40% from worst performers to best
-- Keep total budget the same
-- Focus on efficiency improvements
+Example for "Cut $100k":
+- Current total: $360k
+- Cut $50k from lowest ROAS segment
+- Cut $50k from second-lowest ROAS segment  
+- New total: $260k (NOT $360k)
 
-3. QUESTION TYPES:
+FOR REALLOCATION:
+1. Move 30-40% from worst to best
+2. Total budget stays the same
+3. Show from/to movements
 
-Type A - New Budget Allocation:
-"I have $100k to distribute across age groups"
-→ ADD new budget ON TOP of existing spend
-→ Use weighted tier allocation
-→ Show new total spend for each segment
-
-Type B - Specific Amount Reallocation:
-"I need to shift $50k between platforms"
-→ Take from lowest performers
-→ Give to highest performers
-→ Keep total budget same
-
-Type C - Problem with Specific Segment:
-"The 65+ age group has terrible ROAS"
-→ Options: Reduce budget, reallocate, optimize
-→ Focus on fixing that specific segment
-
-Type D - Optimization:
-"How should I optimize my platform mix?"
-→ Recommend 30-40% shifts from worst to best
+FOR NEW BUDGET:
+1. Use weighted tier allocation
+2. Top tier: 40-50% of new money
+3. Second tier: 25-35%
+4. Third tier: 15-20%
+5. Add to existing budgets
 
 RESPONSE STRUCTURE:
 
 **Current Performance:**
 → List all segments with metrics (sorted by ROAS)
-→ Identify performance tiers
 
 **Analysis:**
-→ Group segments by performance tier
-→ Identify opportunities
-→ Clarify if this is NEW budget or REALLOCATION
+→ Clearly state the budget action type (CUT vs REALLOCATE vs ADD)
+→ Identify which segments will be affected
 
 **Recommendation:**
-For NEW budget: Show how to distribute ADDITIONAL funds
-→ Current spend + New allocation = New total
-For REALLOCATION: Show from/to movements
-→ Keep total budget constant
+For CUTS: 
+→ Cut $X from [worst performer]: $Y current - $X = $Z new total
+→ Show total budget reduction
+→ DO NOT add to other segments
+
+For REALLOCATION:
+→ Move $X from [worst] to [best]
+→ Total budget remains at $Y
+
+For ADDITIONS:
+→ Add $X to [segment]: $Y current + $X = $Z new total
 
 **Expected Impact:**
-→ Calculate revenue impact with actual ROAS
-→ Show total expected improvement
+→ Calculate revenue changes
+→ For cuts: Show revenue loss
+→ For reallocation: Show net impact
+→ For additions: Show revenue gains
 
 FORMATTING REQUIREMENTS:
 - NO MARKDOWN TABLES
 - Use bullet points with → arrows
-- Format: → **Segment**: **$X** current + **$Y** new = **$Z** total
 - Keep it clean and scannable
 
-IMPORTANT RULES:
-- If user says "I have $X to distribute/allocate" → Usually means NEW budget to ADD
-- If user says "reallocate/shift/move" → Means redistribute existing
-- For new budget, use weighted tier approach, don't put all in one segment
-- Always ADD new budget to existing, don't replace
-- Never abandon entire segments unless specifically asked
-- Use actual values from query results
+CRITICAL RULES:
+- CUT means reduce total budget - never reallocate cuts
+- REALLOCATE means move money - keep total same
+- ADD means increase total budget - use tier allocation
+- Always respect the user's exact amounts
+- For cuts, you MUST cut the full amount requested
 
 Generate your strategic recommendation now:`;
     
   } else {
-    // Regular data query prompt with no tables instruction
+    // Regular data query prompt (unchanged)
     userPrompt = `User Question: "${userQuestion}"
 
 SQL Query Executed:
