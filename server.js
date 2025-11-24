@@ -472,16 +472,8 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, agentPrompt
   // Detect if this is a strategy question
   const isStrategy = isStrategyQuery(userQuestion);
   
-  // Updated prompt with bold formatting instructions and NO TABLES
-  const systemPrompt = agentPrompt || `You are a marketing performance analyst. Provide specific, data-driven insights with exact numbers from the query results. Always cite actual names, dollar amounts, and percentages from the data.
-
-FORMATTING RULES:
-- Make all numbers bold using **number** format (e.g., **2.5%**, **$450,000**, **6,213,899**)
-- Make all dimension values bold (e.g., **TikTok**, **Northeast**, **male**, **18-24**)
-- Make all metric names bold when first introduced (e.g., **CTR**, **ROAS**, **conversion rate**)
-- Use markdown bold formatting: **text**
-- NEVER use markdown tables - use bullet points with → arrows instead
-- Format lists like: → **Platform**: **$X** spend, **$Y** revenue, **Z%** metric`;
+  // System prompt - concise and focused
+  const systemPrompt = agentPrompt || `You are a marketing performance analyst. Transform data into actionable insights with precise numbers and clear recommendations.`;
   
   // Sort data by ROAS for better analysis
   let sortedResults = queryResults;
@@ -496,148 +488,105 @@ FORMATTING RULES:
   let userPrompt;
   
   if (isStrategy) {
-    // Updated strategy prompt with proper CUT vs REALLOCATE logic
-    userPrompt = `User Question: "${userQuestion}"
+    // Strategy prompt using best practices
+    userPrompt = `Analyze this marketing data and provide strategic recommendations.
 
-SQL Query Executed:
-${sql}
+<context>
+User Question: "${userQuestion}"
+SQL Query: ${sql}
+</context>
 
-Query Results (SORTED BY ROAS - HIGHEST TO LOWEST):
+<data>
 ${formattedResults}
+</data>
 
-This is a STRATEGY/INVESTMENT question. Provide SPECIFIC, ACTIONABLE recommendations with BOLD formatting.
+<instructions>
+Step 1: Identify the budget action type
+- CUT: "reduce budget", "cut $X", "save money" → Decrease total budget
+- ADD: "have $X to invest", "extra budget", "additional $X" → Increase total budget  
+- REALLOCATE: "optimize", "shift", "move budget" → Keep total budget same
 
-CRITICAL - IDENTIFY THE DIMENSION:
-First, determine what dimension the user is asking about:
-- PLATFORMS (TikTok, Facebook, Instagram, YouTube, Snapchat)
-- REGIONS (Northeast, Midwest, South, West)
-- AGE GROUPS (18-24, 25-34, 35-44, 45-54, 55-64, 65+)
-- GENDERS (male, female, unknown)
+Step 2: Identify the dimension in the data
+- Look at the data keys: platform, region, age_group, or gender
 
-CRITICAL - IDENTIFY THE BUDGET ACTION TYPE:
+Step 3: Apply the appropriate strategy
+- For CUT: Remove from lowest ROAS segments until target reached
+- For ADD: Distribute using performance tiers (50% top, 30% mid, 20% low)
+- For REALLOCATE: Move 30-40% from worst to best performers
 
-1. CUT/REDUCE TOTAL BUDGET (Total budget decreases):
-- "I need to cut $X from the budget"
-- "Reduce spending by $X"
-- "We need to save $X"
-- "Cut budget by X%"
-→ ACTION: Remove money from worst performers, DO NOT reallocate to others
-→ Total budget MUST decrease by the specified amount
+Step 4: Calculate exact impact using actual ROAS values
+</instructions>
 
-2. REALLOCATE/OPTIMIZE (Total budget stays same):
-- "Shift/move/reallocate budget"
-- "Optimize current spending"
-- "Improve efficiency"
-- "Which should get more/less"
-→ ACTION: Move money from worst to best performers
-→ Total budget remains constant
+<formatting>
+"""
+- Bold all numbers: **$75,000**, **5x**, **2.5%**
+- Bold all segments: **TikTok**, **Northeast**, **18-24**
+- Use bullet points with → arrows
+- Never use markdown tables
+"""
+</formatting>
 
-3. ADD/INCREASE BUDGET (Total budget increases):
-- "I have $X extra/additional to invest"
-- "I have $X to distribute"
-- "We got $X more budget"
-→ ACTION: Add new money using weighted tier allocation
-→ Total budget increases by the specified amount
-
-RESPONSE FRAMEWORK BY TYPE:
-
-FOR BUDGET CUTS:
-1. Identify lowest performing segments
-2. Cut from worst performers first until you reach the target cut amount
-3. DO NOT reallocate to other segments
-4. Show new reduced totals
-5. Calculate revenue impact of cuts
-
-Example for "Cut $100k":
-- Current total: $360k
-- Cut $50k from lowest ROAS segment
-- Cut $50k from second-lowest ROAS segment  
-- New total: $260k (NOT $360k)
-
-FOR REALLOCATION:
-1. Move 30-40% from worst to best
-2. Total budget stays the same
-3. Show from/to movements
-
-FOR NEW BUDGET:
-1. Use weighted tier allocation
-2. Top tier: 40-50% of new money
-3. Second tier: 25-35%
-4. Third tier: 15-20%
-5. Add to existing budgets
-
-RESPONSE STRUCTURE:
-
+<examples>
+Example 1 - Adding New Budget:
+User: "I have $100k to distribute across platforms"
+Response Structure:
 **Current Performance:**
-→ List all segments with metrics (sorted by ROAS)
-
-**Analysis:**
-→ Clearly state the budget action type (CUT vs REALLOCATE vs ADD)
-→ Identify which segments will be affected
+→ **TikTok**: **$70k** spend, **8x** ROAS
+→ **YouTube**: **$71k** spend, **5x** ROAS
+[etc.]
 
 **Recommendation:**
-For CUTS: 
-→ Cut $X from [worst performer]: $Y current - $X = $Z new total
-→ Show total budget reduction
-→ DO NOT add to other segments
+Add **$100k** distributed by performance:
+→ **TikTok**: +**$50k** (top tier gets 50%)
+→ **YouTube**: +**$30k** (second tier gets 30%)
+→ **Instagram**: +**$20k** (lower tiers share 20%)
 
-For REALLOCATION:
-→ Move $X from [worst] to [best]
-→ Total budget remains at $Y
+Example 2 - Cutting Budget:
+User: "Cut $100k from total budget"
+Response Structure:
+**Recommendation:**
+Remove **$100k** from lowest performers:
+→ **Facebook**: -**$50k** (from **$71k** to **$21k**)
+→ **Snapchat**: -**$50k** (from **$73k** to **$23k**)
+Total budget: **$360k** → **$260k**
+</examples>
 
-For ADDITIONS:
-→ Add $X to [segment]: $Y current + $X = $Z new total
-
-**Expected Impact:**
-→ Calculate revenue changes
-→ For cuts: Show revenue loss
-→ For reallocation: Show net impact
-→ For additions: Show revenue gains
-
-FORMATTING REQUIREMENTS:
-- NO MARKDOWN TABLES
-- Use bullet points with → arrows
-- Keep it clean and scannable
-
-CRITICAL RULES:
-- CUT means reduce total budget - never reallocate cuts
-- REALLOCATE means move money - keep total same
-- ADD means increase total budget - use tier allocation
-- Always respect the user's exact amounts
-- For cuts, you MUST cut the full amount requested
-
-Generate your strategic recommendation now:`;
+Generate your response following the structure shown in the examples.`;
     
   } else {
-    // Regular data query prompt (unchanged)
-    userPrompt = `User Question: "${userQuestion}"
+    // Regular query prompt - simplified
+    userPrompt = `Answer this marketing question using the provided data.
 
-SQL Query Executed:
-${sql}
+<context>
+User Question: "${userQuestion}"
+SQL Query: ${sql}
+</context>
 
-Query Results:
+<data>
 ${formattedResults}
+</data>
 
-Your task:
-1. Analyze the actual data from the query results
-2. Answer the user's question DIRECTLY with SPECIFIC numbers (exact names, dollar amounts, percentages)
-3. Use a professional but conversational tone
-4. Keep response concise (2-3 paragraphs max)
-5. Format all numbers, metrics, and dimension values in bold using **text** markdown format
-6. NEVER use markdown tables - use bullet points with → arrows for lists
+<instructions>
+1. Answer the question directly using exact numbers from the data
+2. Keep response concise (2-3 paragraphs maximum)
+3. Use conversational tone
+</instructions>
 
-CRITICAL: You must use the ACTUAL numbers from the query results. Do not make up or estimate numbers.
+<formatting>
+"""
+- Bold all numbers: **2.5%**, **$450k**
+- Bold dimension values: **TikTok**, **male**
+- Use → arrows for lists
+- No markdown tables
+"""
+</formatting>
 
-Examples of proper formatting:
-- "The gender with the highest **CTR** is **unknown** at **2.5%**"
-- "**TikTok** leads with **$743,679** in revenue"
-- "The **Midwest** region has a **ROAS** of **5x**"
+<example>
+Question: "Which gender has highest CTR?"
+Response: The gender with the highest **CTR** is **unknown** at **2.5%**, followed by **male** at **2.4%** and **female** at **2.2%**.
+</example>
 
-For lists, use this format:
-→ **Platform A**: **2.5%** CTR, **$45k** spend
-→ **Platform B**: **2.1%** CTR, **$38k** spend
-
-Generate your answer now:`;
+Generate your answer now.`;
   }
 
   try {
