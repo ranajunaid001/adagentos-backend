@@ -190,6 +190,49 @@ function validateSQL(sql) {
   return { valid: true };
 }
 
+// Detect requested metrics from SQL
+function detectRequestedMetrics(sql, userQuestion) {
+  const upperSQL = sql.toUpperCase();
+  const lowerQuestion = userQuestion.toLowerCase();
+  
+  // Check SQL for specific metric calculations
+  if (upperSQL.includes('CTR') || lowerQuestion.includes('ctr') || lowerQuestion.includes('click-through')) {
+    return ['ctr'];
+  }
+  if (upperSQL.includes('CONVERSION_RATE') || lowerQuestion.includes('conversion rate')) {
+    return ['conversion_rate'];
+  }
+  if (upperSQL.includes('CPA') || lowerQuestion.includes('cost per acquisition') || lowerQuestion.includes('cpa')) {
+    return ['cpa'];
+  }
+  if (upperSQL.includes('CPM') || lowerQuestion.includes('cpm') || lowerQuestion.includes('cost per thousand')) {
+    return ['cpm'];
+  }
+  if (upperSQL.includes('COMPLETION_RATE') || lowerQuestion.includes('completion') || lowerQuestion.includes('video completion')) {
+    return ['completion_rate'];
+  }
+  
+  // Check for specific column requests
+  if (lowerQuestion.includes('conversion') && !lowerQuestion.includes('rate')) {
+    return ['conversions'];
+  }
+  if (lowerQuestion.includes('click') && !lowerQuestion.includes('through')) {
+    return ['clicks'];
+  }
+  if (lowerQuestion.includes('impression')) {
+    return ['impressions'];
+  }
+  if (lowerQuestion.includes('spend') && !lowerQuestion.includes('revenue')) {
+    return ['spend'];
+  }
+  if (lowerQuestion.includes('revenue') && !lowerQuestion.includes('spend')) {
+    return ['revenue'];
+  }
+  
+  // Default to financial metrics for general performance questions
+  return ['financial'];
+}
+
 // Detect visualization type and dimension from SQL
 function detectVisualization(sql) {
   const upperSQL = sql.toUpperCase();
@@ -260,7 +303,7 @@ function isStrategyQuery(userQuestion) {
 }
 
 // Execute SQL and aggregate data
-async function executeAndAggregate(sql) {
+async function executeAndAggregate(sql, userQuestion) {
   console.log('Executing SQL...');
   
   try {
@@ -304,11 +347,11 @@ async function executeAndAggregate(sql) {
     // Detect visualization type
     const visualization = detectVisualization(sql);
     
-    // If single query (no GROUP BY), return null for visualization
+    // FIX: If single query (no GROUP BY), return null for visualization
     if (visualization.type === 'single') {
       const singleResult = aggregateSingleResult(filteredData);
       return {
-        visualization: null,
+        visualization: null,  // FIX: No charts for single queries
         rawData: singleResult
       };
     }
@@ -316,10 +359,14 @@ async function executeAndAggregate(sql) {
     // If comparison query (has GROUP BY), aggregate by dimension
     const aggregated = aggregateByDimension(filteredData, visualization.dimension);
     
+    // Detect requested metrics
+    const requestedMetrics = detectRequestedMetrics(sql, userQuestion);
+    
     return {
       visualization: {
         type: 'comparison',
         dimension: visualization.dimension,
+        requestedMetrics: requestedMetrics,  // NEW: Pass requested metrics
         data: aggregated
       },
       rawData: aggregated
@@ -425,16 +472,16 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, agentPrompt
   // Detect if this is a strategy question
   const isStrategy = isStrategyQuery(userQuestion);
   
-  const systemPrompt = agentPrompt || `You are a marketing performance analyst. Provide specific, data-driven insights with exact numbers from the query results. Always cite actual names, dollar amounts, and percentages from the data. 
+  // FIX: Updated prompt with bold formatting instructions
+  const systemPrompt = agentPrompt || `You are a marketing performance analyst. Provide specific, data-driven insights with exact numbers from the query results. Always cite actual names, dollar amounts, and percentages from the data.
 
-  FORMATTING RULES:
-  - Make all numbers bold using **number** format (e.g., **2.5%**, **$450,000**, **6,213,899**)
-  - Make all dimension values bold (e.g., **TikTok**, **Northeast**, **male**, **18-24**)
-  - Make all metric names bold when first introduced (e.g., **CTR**, **ROAS**, **conversion rate**)
-  - Use markdown bold formatting: **text**`;
+FORMATTING RULES:
+- Make all numbers bold using **number** format (e.g., **2.5%**, **$450,000**, **6,213,899**)
+- Make all dimension values bold (e.g., **TikTok**, **Northeast**, **male**, **18-24**)
+- Make all metric names bold when first introduced (e.g., **CTR**, **ROAS**, **conversion rate**)
+- Use markdown bold formatting: **text**`;
   
   // Sort data by ROAS for better analysis
-  
   let sortedResults = queryResults;
   if (typeof queryResults === 'object' && !Array.isArray(queryResults)) {
     const entries = Object.entries(queryResults);
@@ -456,46 +503,46 @@ ${sql}
 Query Results (SORTED BY ROAS - HIGHEST TO LOWEST):
 ${formattedResults}
 
-This is a STRATEGY/INVESTMENT question. You must provide SPECIFIC, ACTIONABLE recommendations.
+This is a STRATEGY/INVESTMENT question. You must provide SPECIFIC, ACTIONABLE recommendations with BOLD formatting.
 
-Your response MUST follow this structure:
+Your response MUST follow this structure and use bold formatting:
 
 **Performance Summary:**
-→ List each platform with its ROAS and spend (highest ROAS first)
+→ List each platform with its **ROAS** and **spend** (highest ROAS first)
 → Identify the efficiency gap between best and worst performers
 
 **Key Insight:**
-→ Identify which platforms have HIGH ROAS but LOW spend (underinvested opportunities)
-→ Identify which platforms have LOW ROAS but HIGH spend (inefficient allocation)
+→ Identify which platforms have **HIGH ROAS** but **LOW spend** (underinvested opportunities)
+→ Identify which platforms have **LOW ROAS** but **HIGH spend** (inefficient allocation)
 
 **Recommendation:**
 → State EXACTLY which platform(s) to reduce budget from
 → State EXACTLY which platform(s) to increase budget to
-→ Provide SPECIFIC dollar amount to reallocate (e.g., "$25,000")
+→ Provide SPECIFIC dollar amount to reallocate (e.g., **$25,000**)
 → Calculate the expected revenue impact using actual ROAS numbers
 
 Example format:
 "**Performance Summary:**
-→ TikTok: 11x ROAS, $67,079 spend
-→ YouTube: 7x ROAS, $67,792 spend
-→ Instagram: 3x ROAS, $67,474 spend
-→ Facebook: 2x ROAS, $69,707 spend
-→ Snapchat: 2x ROAS, $65,444 spend
+→ **TikTok**: **11x** ROAS, **$67,079** spend
+→ **YouTube**: **7x** ROAS, **$67,792** spend
+→ **Instagram**: **3x** ROAS, **$67,474** spend
+→ **Facebook**: **2x** ROAS, **$69,707** spend
+→ **Snapchat**: **2x** ROAS, **$65,444** spend
 
 **Key Insight:**
-TikTok delivers 11x ROAS (highest) while Facebook and Snapchat only achieve 2x ROAS despite receiving similar or higher spend. This represents a massive efficiency gap.
+**TikTok** delivers **11x** ROAS (highest) while **Facebook** and **Snapchat** only achieve **2x** ROAS despite receiving similar or higher spend. This represents a massive efficiency gap.
 
 **Recommendation:**
-Reallocate $40,000 total:
-→ Reduce Facebook budget by $25,000 (from $69,707 to $44,707)
-→ Reduce Snapchat budget by $15,000 (from $65,444 to $50,444)
-→ Increase TikTok budget by $40,000 (from $67,079 to $107,079)
+Reallocate **$40,000** total:
+→ Reduce **Facebook** budget by **$25,000** (from **$69,707** to **$44,707**)
+→ Reduce **Snapchat** budget by **$15,000** (from **$65,444** to **$50,444**)
+→ Increase **TikTok** budget by **$40,000** (from **$67,079** to **$107,079**)
 
 **Expected Impact:**
-This reallocation would generate approximately $360,000 in additional revenue:
-→ TikTok gain: $40,000 × 11 ROAS = $440,000 additional revenue
-→ Facebook/Snapchat loss: $40,000 × 2 ROAS = $80,000 revenue reduction
-→ Net gain: $360,000"
+This reallocation would generate approximately **$360,000** in additional revenue:
+→ **TikTok** gain: **$40,000** × **11** ROAS = **$440,000** additional revenue
+→ **Facebook/Snapchat** loss: **$40,000** × **2** ROAS = **$80,000** revenue reduction
+→ Net gain: **$360,000**"
 
 CRITICAL: Use ACTUAL numbers from the query results. Do not make up or estimate any figures.
 
@@ -516,8 +563,14 @@ Your task:
 2. Answer the user's question DIRECTLY with SPECIFIC numbers (exact names, dollar amounts, percentages)
 3. Use a professional but conversational tone
 4. Keep response concise (2-3 paragraphs max)
+5. Format all numbers, metrics, and dimension values in bold using **text** markdown format
 
 CRITICAL: You must use the ACTUAL numbers from the query results. Do not make up or estimate numbers.
+
+Examples of proper formatting:
+- "The gender with the highest **CTR** is **unknown** at **2.5%**"
+- "**TikTok** leads with **$743,679** in revenue"
+- "The **Midwest** region has a **ROAS** of **5x**"
 
 Generate your answer now:`;
   }
@@ -541,10 +594,10 @@ function formatDataFallback(results) {
       const data = results[key];
       if (typeof data === 'object') {
         output += `**${key}**\n`;
-        if (data.roas) output += `→ ROAS: ${data.roas}x\n`;
-        if (data.spend) output += `→ Spend: $${(data.spend/1000).toFixed(1)}k\n`;
-        if (data.revenue) output += `→ Revenue: $${(data.revenue/1000).toFixed(1)}k\n`;
-        if (data.ctr) output += `→ CTR: ${data.ctr}%\n`;
+        if (data.roas) output += `→ ROAS: **${data.roas}x**\n`;
+        if (data.spend) output += `→ Spend: **$${(data.spend/1000).toFixed(1)}k**\n`;
+        if (data.revenue) output += `→ Revenue: **$${(data.revenue/1000).toFixed(1)}k**\n`;
+        if (data.ctr) output += `→ CTR: **${data.ctr}%**\n`;
         output += '\n';
       }
     });
@@ -597,10 +650,10 @@ app.post('/chat', async (req, res) => {
       });
     }
     
-    // Step 3: Execute SQL and aggregate
+    // Step 3: Execute SQL and aggregate (now with userQuestion for metric detection)
     let result;
     try {
-      result = await executeAndAggregate(sql);
+      result = await executeAndAggregate(sql, message);
       console.log('Query executed successfully');
       
     } catch (error) {
