@@ -496,7 +496,7 @@ FORMATTING RULES:
   let userPrompt;
   
   if (isStrategy) {
-    // Updated multi-dimensional strategy prompt with NO TABLES instruction
+    // Updated multi-dimensional strategy prompt with NEW BUDGET handling
     userPrompt = `User Question: "${userQuestion}"
 
 SQL Query Executed:
@@ -515,84 +515,100 @@ First, determine what dimension the user is asking about:
 - GENDERS (male, female, unknown)
 - Or a combination/general optimization
 
+CRITICAL - NEW BUDGET VS REALLOCATION:
+Identify which type of budget question this is:
+
+1. NEW/ADDITIONAL BUDGET indicators:
+- "I have $X extra/additional to invest"
+- "I have $X to distribute/allocate" (without mentioning moving/shifting)
+- "We just got $X more budget"
+- "I have new budget of $X"
+
+2. REALLOCATION indicators:
+- "Shift/move/reallocate budget"
+- "Optimize current spending"
+- "Where should I cut and where should I add"
+
 FLEXIBLE RESPONSE FRAMEWORK:
 
-1. READ THE USER'S QUESTION CAREFULLY:
-- If they specify an exact amount (e.g., "$50,000"), use THAT amount
-- If they ask about a specific segment (e.g., "South region is underperforming"), focus on THAT
-- If they mention a specific dimension, analyze within that dimension
+1. FOR NEW/ADDITIONAL BUDGET:
+Use Weighted Tier Allocation:
+- Group segments by performance tiers (e.g., 5x ROAS, 4x ROAS, 3x ROAS)
+- Allocate new budget weighted by tier:
+  * Top tier (highest ROAS): 40-50% of new budget
+  * Second tier: 25-35% of new budget
+  * Third tier: 15-20% of new budget
+  * Bottom tier: 5-10% of new budget
+- ADD these amounts to existing spend, don't replace
 
-2. DIMENSION-AWARE ANALYSIS:
-For any dimension (platform, region, age, gender):
-- Identify the TOP performers (highest ROAS/metrics)
-- Identify the BOTTOM performers (lowest ROAS/metrics)
-- Calculate efficiency gaps
-- Consider practical constraints (can't eliminate all regions, etc.)
+Example: User has $100k new budget with segments at 5x, 4x, and 3x ROAS
+→ Give 40-50% split among 5x ROAS segments
+→ Give 30% split among 4x ROAS segments  
+→ Give 20% split among 3x ROAS segments
+→ Reserve 10% for testing/buffer
+
+2. FOR REALLOCATION OF EXISTING BUDGET:
+- Move 30-40% from worst performers to best
+- Keep total budget the same
+- Focus on efficiency improvements
 
 3. QUESTION TYPES:
 
-Type A - Specific Amount + Dimension:
-"I have $50,000 to reallocate across regions"
-→ Use exact $50,000
-→ Move from lowest ROAS regions to highest
+Type A - New Budget Allocation:
+"I have $100k to distribute across age groups"
+→ ADD new budget ON TOP of existing spend
+→ Use weighted tier allocation
+→ Show new total spend for each segment
 
-Type B - Problem with Specific Segment:
+Type B - Specific Amount Reallocation:
+"I need to shift $50k between platforms"
+→ Take from lowest performers
+→ Give to highest performers
+→ Keep total budget same
+
+Type C - Problem with Specific Segment:
 "The 65+ age group has terrible ROAS"
-→ Options: Reduce budget, reallocate, optimize targeting
+→ Options: Reduce budget, reallocate, optimize
 → Focus on fixing that specific segment
 
-Type C - Optimization within Dimension:
-"How should I optimize gender targeting?"
-→ Analyze all genders, recommend shifts
-
-Type D - Cross-Dimensional:
-"Should I focus more on young users in the Midwest?"
-→ Consider multiple dimensions together
-
-Type E - New Budget Allocation:
-"I have $100k extra, which age groups should get it?"
-→ Allocate to highest performing segments
+Type D - Optimization:
+"How should I optimize my platform mix?"
+→ Recommend 30-40% shifts from worst to best
 
 RESPONSE STRUCTURE:
 
 **Current Performance:**
-→ List all segments in the relevant dimension with their metrics
-→ Highlight the best and worst performers
+→ List all segments with metrics (sorted by ROAS)
+→ Identify performance tiers
 
 **Analysis:**
-→ Directly address the user's specific question
-→ Identify opportunities and inefficiencies
-→ Consider practical constraints
+→ Group segments by performance tier
+→ Identify opportunities
+→ Clarify if this is NEW budget or REALLOCATION
 
 **Recommendation:**
-→ Specific to their question and dimension
-→ Use their amounts if specified
-→ Provide clear from/to allocations
-→ Consider diminishing returns for large shifts
+For NEW budget: Show how to distribute ADDITIONAL funds
+→ Current spend + New allocation = New total
+For REALLOCATION: Show from/to movements
+→ Keep total budget constant
 
 **Expected Impact:**
-→ Calculate using actual ROAS/metrics from data
-→ Show gains and losses
-→ Net impact
+→ Calculate revenue impact with actual ROAS
+→ Show total expected improvement
 
 FORMATTING REQUIREMENTS:
-- NO MARKDOWN TABLES - they don't render in the UI
-- Use bullet points with → arrows for all data listings
-- Format performance data as: → **Segment**: **$X** spend, **$Y** revenue, **Z** ROAS
+- NO MARKDOWN TABLES
+- Use bullet points with → arrows
+- Format: → **Segment**: **$X** current + **$Y** new = **$Z** total
 - Keep it clean and scannable
 
-Example format for Current Performance:
-→ **TikTok**: **$70,493** spend, **$560,000** revenue, **8x** ROAS
-→ **YouTube**: **$71,200** spend, **$370,000** revenue, **5x** ROAS
-(NOT a table with | | | separators)
-
 IMPORTANT RULES:
-- Don't assume it's always about platforms - check what dimension is in the data
-- If user specifies amounts, use them exactly
-- If focusing on one segment's problem, give targeted solutions
-- Consider practical business constraints (can't abandon entire demographics)
-- Use actual values from the query results, never hardcode
-- NEVER create markdown tables - always use bullet point lists
+- If user says "I have $X to distribute/allocate" → Usually means NEW budget to ADD
+- If user says "reallocate/shift/move" → Means redistribute existing
+- For new budget, use weighted tier approach, don't put all in one segment
+- Always ADD new budget to existing, don't replace
+- Never abandon entire segments unless specifically asked
+- Use actual values from query results
 
 Generate your strategic recommendation now:`;
     
