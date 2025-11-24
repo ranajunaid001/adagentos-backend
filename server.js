@@ -676,7 +676,7 @@ function formatDataFallback(results) {
 // Main chat endpoint
 app.post('/chat', async (req, res) => {
   try {
-    const { message, agentPrompts, agentConfig } = req.body;
+    const { message, agentPrompts, agentConfig, conversationHistory } = req.body;
     
     console.log('\n=== New Chat Request ===');
     console.log('User message:', message);
