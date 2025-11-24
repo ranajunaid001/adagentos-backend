@@ -681,6 +681,16 @@ app.post('/chat', async (req, res) => {
     console.log('\n=== New Chat Request ===');
     console.log('User message:', message);
     
+    // Build conversation context
+    let contextString = '';
+    if (conversationHistory && conversationHistory.length > 0) {
+      contextString = 'Previous conversation:\n';
+      conversationHistory.forEach(msg => {
+        contextString += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
+      });
+      contextString += '\n';
+    }
+    
     // Handle both old and new config formats
     let queryPrompt = agentPrompts?.queryGeneratorAgent;
     let answerPrompt = agentPrompts?.answerGeneratorAgent;
@@ -692,7 +702,7 @@ app.post('/chat', async (req, res) => {
     
     // Step 1: Query Generator Agent
     const queryResult = await queryGeneratorAgent(
-      message, 
+      contextString + 'Current question: ' + message, 
       queryPrompt
     );
     
@@ -744,7 +754,7 @@ app.post('/chat', async (req, res) => {
     
     // Step 4: Answer Generator Agent
     const answer = await answerGeneratorAgent(
-      message,
+      contextString + 'Current question: ' + message,
       result.rawData,
       sql,
       answerPrompt
@@ -770,6 +780,7 @@ app.post('/chat', async (req, res) => {
     });
   }
 });
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
