@@ -425,9 +425,16 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, agentPrompt
   // Detect if this is a strategy question
   const isStrategy = isStrategyQuery(userQuestion);
   
-  const systemPrompt = agentPrompt || `You are a marketing performance analyst. Provide specific, data-driven insights with exact numbers from the query results. Always cite actual names, dollar amounts, and percentages from the data.`;
+  const systemPrompt = agentPrompt || `You are a marketing performance analyst. Provide specific, data-driven insights with exact numbers from the query results. Always cite actual names, dollar amounts, and percentages from the data. 
+
+  FORMATTING RULES:
+  - Make all numbers bold using **number** format (e.g., **2.5%**, **$450,000**, **6,213,899**)
+  - Make all dimension values bold (e.g., **TikTok**, **Northeast**, **male**, **18-24**)
+  - Make all metric names bold when first introduced (e.g., **CTR**, **ROAS**, **conversion rate**)
+  - Use markdown bold formatting: **text**`;
   
   // Sort data by ROAS for better analysis
+  
   let sortedResults = queryResults;
   if (typeof queryResults === 'object' && !Array.isArray(queryResults)) {
     const entries = Object.entries(queryResults);
