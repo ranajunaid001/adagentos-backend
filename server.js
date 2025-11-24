@@ -92,8 +92,10 @@ async function callLLM(systemPrompt, userPrompt, maxTokens = 1000) {
 }
 
 // Agent 1: Query Generator Agent
-// Replace your entire queryGeneratorAgent function with this:
+// Agent 1: Query Generator Agent
 async function queryGeneratorAgent(userQuestion, customPrompt) {
+  console.log('QueryGeneratorAgent: Converting question to SQL');
+  
   const systemPrompt = customPrompt || 'You are an expert SQL query generator for marketing analytics.';
   
   const userPrompt = `
@@ -117,9 +119,9 @@ Columns:
 
 Calculated metrics:
 - ROAS = SUM(revenue) / NULLIF(SUM(spend), 0)
-- CTR = (SUM(clicks) / NULLIF(SUM(impressions), 0)) * 100
+- CTR = (SUM(clicks)::numeric / NULLIF(SUM(impressions), 0)) * 100
 - CPA = SUM(spend) / NULLIF(SUM(conversions), 0)
-- Video Completion Rate = (SUM(views_100) / NULLIF(SUM(video_starts), 0)) * 100
+- Video Completion Rate = (SUM(views_100)::numeric / NULLIF(SUM(video_starts), 0)) * 100
 """
 </database_schema>
 
@@ -134,12 +136,12 @@ Step 4: For strategy questions asking about budget allocation, always GROUP BY t
 Example 1:
 Previous: "Which platform has best ROAS?" Answer: "TikTok has 8x ROAS"
 Current: "How much am I spending there?"
-Resolution: "there" = TikTok
+Resolution: "there" = TikTok, so query should filter WHERE platform = 'TikTok'
 
 Example 2:
 Previous: "Compare TikTok and Instagram"
 Current: "Which one has better CTR?"
-Resolution: "one" = either TikTok or Instagram (compare both)
+Resolution: "one" = either TikTok or Instagram, so query should filter WHERE platform IN ('TikTok', 'Instagram')
 </pronoun_resolution_examples>
 
 <rules>
@@ -159,15 +161,9 @@ ${userQuestion.includes('Current question:') ? userQuestion.split('Current quest
 Based on the above context and instructions, generate the appropriate SQL query or explain why the data is not available.`;
 
   try {
-    const response = await anthropic.messages.create({
-      model: MODEL_NAME,
-      max_tokens: 500,
-      temperature: 0.2,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }]
-    });
+    const response = await callLLM(systemPrompt, userPrompt, 500);
     
-    const content = response.content[0].text.trim();
+    const content = response.trim();
     
     // Check if it's SQL or conversational
     const isSQL = content.toUpperCase().includes('SELECT');
