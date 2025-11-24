@@ -713,13 +713,7 @@ app.post('/chat', async (req, res) => {
     }
     
     // Handle both old and new config formats
-    let queryPrompt = agentPrompts?.queryGeneratorAgent;
-    let answerPrompt = agentPrompts?.answerGeneratorAgent;
-    
-    if (agentConfig) {
-      queryPrompt = agentConfig.queryGenerator?.systemPrompt || queryPrompt;
-      answerPrompt = agentConfig.analysisAgent?.systemPrompt || answerPrompt;
-    }
+
     
     // Step 1: Query Generator Agent
     const queryResult = await queryGeneratorAgent(
