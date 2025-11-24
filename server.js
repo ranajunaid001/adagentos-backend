@@ -472,7 +472,7 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, agentPrompt
   // Detect if this is a strategy question
   const isStrategy = isStrategyQuery(userQuestion);
   
-  // FIX: Updated prompt with bold formatting instructions
+  // Updated prompt with bold formatting instructions
   const systemPrompt = agentPrompt || `You are a marketing performance analyst. Provide specific, data-driven insights with exact numbers from the query results. Always cite actual names, dollar amounts, and percentages from the data.
 
 FORMATTING RULES:
@@ -494,7 +494,7 @@ FORMATTING RULES:
   let userPrompt;
   
   if (isStrategy) {
-    // Strategy-specific prompt with structured output requirements
+    // UPDATED: Dynamic strategy prompt without hardcoded examples
     userPrompt = `User Question: "${userQuestion}"
 
 SQL Query Executed:
@@ -505,46 +505,41 @@ ${formattedResults}
 
 This is a STRATEGY/INVESTMENT question. You must provide SPECIFIC, ACTIONABLE recommendations with BOLD formatting.
 
-Your response MUST follow this structure and use bold formatting:
+DYNAMIC RECOMMENDATION RULES:
+1. Analyze the ACTUAL data provided - identify the platform/segment with HIGHEST ROAS and those with LOWEST ROAS
+2. ALWAYS recommend moving budget FROM the lowest performers TO the highest performer
+3. Calculate reallocation as 30-40% of spend from bottom 2 performers
+4. Show exact math with actual platform names and numbers from the data
+
+Your response MUST follow this structure:
 
 **Performance Summary:**
-→ List each platform with its **ROAS** and **spend** (highest ROAS first)
+→ List each platform/segment with its **ROAS** and **spend** (highest ROAS first)
 → Identify the efficiency gap between best and worst performers
 
 **Key Insight:**
-→ Identify which platforms have **HIGH ROAS** but **LOW spend** (underinvested opportunities)
-→ Identify which platforms have **LOW ROAS** but **HIGH spend** (inefficient allocation)
+→ Identify which platforms have **HIGH ROAS** but could handle more budget
+→ Identify which platforms have **LOW ROAS** and are overfunded
+→ Calculate the ROAS difference between best and worst
 
 **Recommendation:**
-→ State EXACTLY which platform(s) to reduce budget from
-→ State EXACTLY which platform(s) to increase budget to
-→ Provide SPECIFIC dollar amount to reallocate (e.g., **$25,000**)
-→ Calculate the expected revenue impact using actual ROAS numbers
-
-Example format:
-"**Performance Summary:**
-→ **TikTok**: **11x** ROAS, **$67,079** spend
-→ **YouTube**: **7x** ROAS, **$67,792** spend
-→ **Instagram**: **3x** ROAS, **$67,474** spend
-→ **Facebook**: **2x** ROAS, **$69,707** spend
-→ **Snapchat**: **2x** ROAS, **$65,444** spend
-
-**Key Insight:**
-**TikTok** delivers **11x** ROAS (highest) while **Facebook** and **Snapchat** only achieve **2x** ROAS despite receiving similar or higher spend. This represents a massive efficiency gap.
-
-**Recommendation:**
-Reallocate **$40,000** total:
-→ Reduce **Facebook** budget by **$25,000** (from **$69,707** to **$44,707**)
-→ Reduce **Snapchat** budget by **$15,000** (from **$65,444** to **$50,444**)
-→ Increase **TikTok** budget by **$40,000** (from **$67,079** to **$107,079**)
+Based on the data provided:
+→ Identify the TOP performer (highest ROAS in the data)
+→ Identify the BOTTOM 2 performers (lowest ROAS in the data)
+→ Calculate 30-35% of spend from each bottom performer
+→ Recommend moving that total to the top performer
+→ Use ACTUAL platform names and numbers from the results
 
 **Expected Impact:**
-This reallocation would generate approximately **$360,000** in additional revenue:
-→ **TikTok** gain: **$40,000** × **11** ROAS = **$440,000** additional revenue
-→ **Facebook/Snapchat** loss: **$40,000** × **2** ROAS = **$80,000** revenue reduction
-→ Net gain: **$360,000**"
+→ Calculate gains using the TOP performer's actual ROAS
+→ Calculate losses using the BOTTOM performers' actual ROAS
+→ Show net revenue impact
 
-CRITICAL: Use ACTUAL numbers from the query results. Do not make up or estimate any figures.
+CRITICAL RULES:
+- NEVER hardcode platform names (like TikTok, Facebook) - use what's in the data
+- NEVER hardcode ROAS values - use actual values from query results
+- ALWAYS move budget to the HIGHEST ROAS platform/segment in the data
+- Base recommendations on the ACTUAL performance data provided
 
 Generate your strategic recommendation now:`;
     
