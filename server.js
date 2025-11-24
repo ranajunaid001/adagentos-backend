@@ -494,7 +494,7 @@ FORMATTING RULES:
   let userPrompt;
   
   if (isStrategy) {
-    // UPDATED: Dynamic strategy prompt without hardcoded examples
+    // UPDATED: More flexible strategy prompt
     userPrompt = `User Question: "${userQuestion}"
 
 SQL Query Executed:
@@ -503,48 +503,55 @@ ${sql}
 Query Results (SORTED BY ROAS - HIGHEST TO LOWEST):
 ${formattedResults}
 
-This is a STRATEGY/INVESTMENT question. You must provide SPECIFIC, ACTIONABLE recommendations with BOLD formatting.
+This is a STRATEGY/INVESTMENT question. Provide SPECIFIC, ACTIONABLE recommendations with BOLD formatting.
 
-DYNAMIC RECOMMENDATION RULES:
-1. Analyze the ACTUAL data provided - identify the platform/segment with HIGHEST ROAS and those with LOWEST ROAS
-2. ALWAYS recommend moving budget FROM the lowest performers TO the highest performer
-3. Calculate reallocation as 30-40% of spend from bottom 2 performers
-4. Show exact math with actual platform names and numbers from the data
+CRITICAL - READ THE USER'S QUESTION CAREFULLY:
+1. If user specifies an exact amount (e.g., "$50,000 to reallocate"), use THAT amount
+2. If user asks about a specific platform problem (e.g., "Snapchat ROAS is low"), focus on solutions for THAT platform
+3. If user asks general optimization, then do broad reallocation
 
-Your response MUST follow this structure:
+QUESTION TYPES AND RESPONSES:
 
-**Performance Summary:**
-→ List each platform/segment with its **ROAS** and **spend** (highest ROAS first)
-→ Identify the efficiency gap between best and worst performers
+Type 1 - Specific Amount Questions (e.g., "I have $50,000 to reallocate"):
+- Use the EXACT amount the user specified
+- Identify where to take it from (lowest ROAS platforms)
+- Identify where to put it (highest ROAS platform)
+- Don't use percentage rules, use their amount
 
-**Key Insight:**
-→ Identify which platforms have **HIGH ROAS** but could handle more budget
-→ Identify which platforms have **LOW ROAS** and are overfunded
-→ Calculate the ROAS difference between best and worst
+Type 2 - Specific Platform Problems (e.g., "Snapchat ROAS is too low"):
+- Focus on fixing THAT platform, options include:
+  a) Reduce budget (specify how much)
+  b) Pause the platform entirely
+  c) Reallocate portion of its budget
+  d) Suggest optimization tactics (audience, creative, etc.)
+- Don't just give generic reallocation advice
+
+Type 3 - General Optimization:
+- Use 30-40% reallocation from worst to best
+- Follow standard optimization logic
+
+Type 4 - New Budget Questions (e.g., "I have $100k additional budget"):
+- Recommend allocating new budget to highest ROAS platforms
+- Consider diminishing returns (maybe 70% to top, 30% to second)
+
+Your response structure:
+
+**Current Performance:**
+→ Show relevant metrics based on the question
+
+**Analysis:**
+→ Directly address what the user asked about
 
 **Recommendation:**
-Based on the data provided:
-→ Identify the TOP performer (highest ROAS in the data)
-→ Identify the BOTTOM 2 performers (lowest ROAS in the data)
-→ Calculate 30-35% of spend from each bottom performer
-→ Recommend moving that total to the top performer
-→ Use ACTUAL platform names and numbers from the results
+→ Specific to their question (use their amounts, focus on their concerns)
 
 **Expected Impact:**
-→ Calculate gains using the TOP performer's actual ROAS
-→ Calculate losses using the BOTTOM performers' actual ROAS
-→ Show net revenue impact
-
-CRITICAL RULES:
-- NEVER hardcode platform names (like TikTok, Facebook) - use what's in the data
-- NEVER hardcode ROAS values - use actual values from query results
-- ALWAYS move budget to the HIGHEST ROAS platform/segment in the data
-- Base recommendations on the ACTUAL performance data provided
+→ Calculate using actual numbers
 
 Generate your strategic recommendation now:`;
     
   } else {
-    // Regular data query prompt
+    // Regular data query prompt (unchanged)
     userPrompt = `User Question: "${userQuestion}"
 
 SQL Query Executed:
