@@ -92,68 +92,93 @@ async function callLLM(systemPrompt, userPrompt, maxTokens = 1000) {
 }
 
 // Agent 1: Query Generator Agent
-async function queryGeneratorAgent(userQuestion, agentPrompt) {
-  console.log('QueryGeneratorAgent: Processing question:', userQuestion);
+// Replace your entire queryGeneratorAgent function with this:
+async function queryGeneratorAgent(userQuestion, customPrompt) {
+  const systemPrompt = customPrompt || 'You are an expert SQL query generator for marketing analytics.';
   
-  const systemPrompt = agentPrompt || `You are an expert SQL query generator for marketing analytics. Generate safe, efficient PostgreSQL queries based on user questions and the provided schema.`;
-  
-  const userPrompt = `${DATABASE_SCHEMA}
+  const userPrompt = `
+<conversation_context>
+"""
+${userQuestion.includes('Previous conversation:') ? userQuestion.split('Current question:')[0] : ''}
+"""
+</conversation_context>
 
-User Question: "${userQuestion}"
+<database_schema>
+"""
+Table: video_ad_performance
+Columns:
+- report_month: '2025-10-01' (always filter by this)
+- platform: TikTok, Instagram, Facebook, YouTube, Snapchat
+- region: Northeast, Midwest, South, West
+- age_group: 18-24, 25-34, 35-44, 45-54, 55-64, 65+
+- gender: male, female, unknown
+- spend, revenue, clicks, impressions, conversions (numeric)
+- video_starts, views_3s, views_25, views_50, views_100 (bigint)
 
-Your task:
-1. If the question can be answered with the available data, generate a valid PostgreSQL SELECT query
-2. If the question asks for data not available in the schema (e.g., platforms not in the list, metrics not calculable), respond with a conversational message explaining what data IS available
-3. If the question is too vague, ask a clarifying question naturally
+Calculated metrics:
+- ROAS = SUM(revenue) / NULLIF(SUM(spend), 0)
+- CTR = (SUM(clicks) / NULLIF(SUM(impressions), 0)) * 100
+- CPA = SUM(spend) / NULLIF(SUM(conversions), 0)
+- Video Completion Rate = (SUM(views_100) / NULLIF(SUM(video_starts), 0)) * 100
+"""
+</database_schema>
 
-Response Format:
-- If generating SQL: Return ONLY the SQL query WITHOUT semicolon at the end
-- If data not available: Return a natural conversational response like "I don't have [X] data, but I can show you [Y]. Would you like that?"
-- If clarification needed: Ask a natural question like "I can help! Are you interested in ROAS, conversion rates, or something else?"
+<instructions>
+Step 1: Read the conversation context above. If the user uses pronouns like "there", "it", "that", identify what they refer to from the previous messages.
+Step 2: Determine if this question can be answered with the available data.
+Step 3: If yes, generate a SELECT query. If no, explain what data is available instead.
+Step 4: For strategy questions asking about budget allocation, always GROUP BY the relevant dimension.
+</instructions>
 
-IMPORTANT - Strategy Questions:
-If the user asks for investment advice, budget allocation, optimization suggestions, or strategic recommendations, ALWAYS generate SQL to fetch performance data. DO NOT ask clarifying questions for these queries.
+<pronoun_resolution_examples>
+Example 1:
+Previous: "Which platform has best ROAS?" Answer: "TikTok has 8x ROAS"
+Current: "How much am I spending there?"
+Resolution: "there" = TikTok
 
-Strategy question indicators:
-- "Where should I invest..."
-- "How can I improve..."
-- "Which platforms should I optimize..."
-- "Where should I reallocate budget..."
-- "What should I do..."
-- "How to maximize..."
-- "Best way to increase..."
-- "Should I shift budget..."
+Example 2:
+Previous: "Compare TikTok and Instagram"
+Current: "Which one has better CTR?"
+Resolution: "one" = either TikTok or Instagram (compare both)
+</pronoun_resolution_examples>
 
-For strategy questions, generate SQL to get platform performance data (include spend, revenue, ROAS, conversions, etc.) using GROUP BY platform and ORDER BY roas DESC, so the analysis agent can provide data-driven recommendations.
+<rules>
+- Only generate SELECT queries
+- Always include WHERE report_month = '2025-10-01'
+- Use NULLIF to prevent division by zero
+- No semicolon at the end
+- When user refers to "there/it/that", use context to identify the specific platform/segment
+</rules>
 
-Examples:
+<user_question>
+"""
+${userQuestion.includes('Current question:') ? userQuestion.split('Current question:')[1].trim() : userQuestion}
+"""
+</user_question>
 
-Q: "Which platform has best ROAS?"
-A: SELECT platform, SUM(revenue) / NULLIF(SUM(spend), 0) as roas, SUM(spend) as total_spend, SUM(revenue) as total_revenue FROM video_ad_performance WHERE report_month = '2025-10-01' GROUP BY platform ORDER BY roas DESC
-
-Q: "Where should I invest more budget?"
-A: SELECT platform, SUM(spend) as total_spend, SUM(revenue) as total_revenue, SUM(revenue) / NULLIF(SUM(spend), 0) as roas, SUM(conversions) as total_conversions FROM video_ad_performance WHERE report_month = '2025-10-01' GROUP BY platform ORDER BY roas DESC
-
-Q: "What's my Twitter performance?"
-A: I don't have Twitter data in the system. I can analyze TikTok, Instagram, Facebook, YouTube, or Snapchat. Which would you like to see?
-
-Q: "Show me the data"
-A: I can help! What would you like to explore? Performance by platform, region, age group, or specific metrics like ROAS or conversion rates?
-
-Generate response now:`;
+Based on the above context and instructions, generate the appropriate SQL query or explain why the data is not available.`;
 
   try {
-    const response = await callLLM(systemPrompt, userPrompt, 1000);
+    const response = await anthropic.messages.create({
+      model: MODEL_NAME,
+      max_tokens: 500,
+      temperature: 0.2,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    });
     
-    // Check if response is SQL or conversational
-    const isSQL = response.toUpperCase().includes('SELECT') && 
-                   response.toUpperCase().includes('FROM');
+    const content = response.content[0].text.trim();
     
-    return { isSQL, content: response };
+    // Check if it's SQL or conversational
+    const isSQL = content.toUpperCase().includes('SELECT');
     
+    return {
+      isSQL,
+      content
+    };
   } catch (error) {
-    console.error('Error in queryGeneratorAgent:', error);
-    throw new Error('I had trouble understanding that question. Could you rephrase it?');
+    console.error('Query Generator Agent Error:', error);
+    throw error;
   }
 }
 
