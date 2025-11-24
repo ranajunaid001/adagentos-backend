@@ -92,73 +92,24 @@ async function callLLM(systemPrompt, userPrompt, maxTokens = 1000) {
 }
 
 // Agent 1: Query Generator Agent
-// Agent 1: Query Generator Agent
 async function queryGeneratorAgent(userQuestion, customPrompt) {
   console.log('QueryGeneratorAgent: Converting question to SQL');
   
-  const systemPrompt = customPrompt || 'You are an expert SQL query generator for marketing analytics.';
-  
-  const userPrompt = `
-<conversation_context>
-"""
-${userQuestion.includes('Previous conversation:') ? userQuestion.split('Current question:')[0] : ''}
-"""
-</conversation_context>
+  const systemPrompt = customPrompt || `You are an expert SQL query generator. Convert natural language questions into PostgreSQL queries for the video_ad_performance table.
 
-<database_schema>
-"""
-Table: video_ad_performance
-Columns:
-- report_month: '2025-10-01' (always filter by this)
-- platform: TikTok, Instagram, Facebook, YouTube, Snapchat
-- region: Northeast, Midwest, South, West
-- age_group: 18-24, 25-34, 35-44, 45-54, 55-64, 65+
-- gender: male, female, unknown
-- spend, revenue, clicks, impressions, conversions (numeric)
-- video_starts, views_3s, views_25, views_50, views_100 (bigint)
+${DATABASE_SCHEMA}
 
-Calculated metrics:
-- ROAS = SUM(revenue) / NULLIF(SUM(spend), 0)
-- CTR = (SUM(clicks)::numeric / NULLIF(SUM(impressions), 0)) * 100
-- CPA = SUM(spend) / NULLIF(SUM(conversions), 0)
-- Video Completion Rate = (SUM(views_100)::numeric / NULLIF(SUM(video_starts), 0)) * 100
-"""
-</database_schema>
-
-<instructions>
-Step 1: Read the conversation context above. If the user uses pronouns like "there", "it", "that", identify what they refer to from the previous messages.
-Step 2: Determine if this question can be answered with the available data.
-Step 3: If yes, generate a SELECT query. If no, explain what data is available instead.
-Step 4: For strategy questions asking about budget allocation, always GROUP BY the relevant dimension.
-</instructions>
-
-<pronoun_resolution_examples>
-Example 1:
-Previous: "Which platform has best ROAS?" Answer: "TikTok has 8x ROAS"
-Current: "How much am I spending there?"
-Resolution: "there" = TikTok, so query should filter WHERE platform = 'TikTok'
-
-Example 2:
-Previous: "Compare TikTok and Instagram"
-Current: "Which one has better CTR?"
-Resolution: "one" = either TikTok or Instagram, so query should filter WHERE platform IN ('TikTok', 'Instagram')
-</pronoun_resolution_examples>
-
-<rules>
-- Only generate SELECT queries
+Rules:
+- Only SELECT queries allowed
 - Always include WHERE report_month = '2025-10-01'
-- Use NULLIF to prevent division by zero
-- No semicolon at the end
-- When user refers to "there/it/that", use context to identify the specific platform/segment
-</rules>
+- Use proper aggregations with GROUP BY when needed
+- Include ORDER BY for meaningful results
+- LIMIT results appropriately
+- NO semicolons at the end`;
 
-<user_question>
-"""
-${userQuestion.includes('Current question:') ? userQuestion.split('Current question:')[1].trim() : userQuestion}
-"""
-</user_question>
+  const userPrompt = `Convert this question to SQL: "${userQuestion}"
 
-Based on the above context and instructions, generate the appropriate SQL query or explain why the data is not available.`;
+If the question cannot be answered with the available data, explain what data is available instead of generating SQL.`;
 
   try {
     const response = await callLLM(systemPrompt, userPrompt, 500);
