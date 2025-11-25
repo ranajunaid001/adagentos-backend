@@ -97,27 +97,31 @@ async function queryGeneratorAgent(userQuestion, customPrompt) {
   
   const systemPrompt = customPrompt || `You are an expert SQL query generator. Convert natural language questions into PostgreSQL queries for the video_ad_performance table.
 
-  STEP 1: First, identify the user's business goal from their question:
+  STEP 1: Identify the user's business goal using this PRIORITY ORDER:
   
-  AWARENESS GOAL - Keywords: awareness, reach, visibility, impressions, brand, exposure, eyeballs, CPM
-  CONVERSION GOAL - Keywords: sales, revenue, ROAS, conversions, ROI, profit, CPA, purchase, invest, budget
-  ENGAGEMENT GOAL - Keywords: clicks, CTR, traffic, visitors, engagement, interaction, video completion, watch, "maintain traffic", "increase traffic", "website traffic", "drive traffic"
+  1. FIRST CHECK - Explicit metric/keyword detection (HIGHEST PRIORITY):
+     - If question contains "impressions", "reach", "visibility", "CPM", "awareness" → AWARENESS
+     - If question contains "CTR", "clicks", "traffic", "click-through" → ENGAGEMENT  
+     - If question contains "ROAS", "revenue", "sales", "conversions", "ROI", "profit" → CONVERSION
   
-  If no clear goal is detected, assume CONVERSION.
+  2. SECOND CHECK - Action keywords (if no explicit metric found):
+     AWARENESS GOAL - Keywords: maximize reach, increase visibility, brand exposure, eyeballs
+     CONVERSION GOAL - Keywords: purchase, invest (when about returns), maximize profit
+     ENGAGEMENT GOAL - Keywords: drive traffic, maintain traffic, increase engagement
+  
+  3. THIRD CHECK - Follow-up context (ONLY if no keywords from #1 or #2):
+     If the question contains these follow-up indicators AND no explicit goal keyword:
+     - Pronouns: "there", "it", "that", "those"  
+     - References: "the best one", "the top performer"
+     - Check "Previous query goal:" in context
+  
+  4. DEFAULT: If no clear goal detected, assume CONVERSION.
 
-  FOLLOW-UP DETECTION:
-If the question contains these follow-up indicators AND no explicit new goal keyword, maintain the goal from the previous query:
-- Pronouns: "there", "it", "that", "those"  
-- References: "the best one", "the top performer", "the highest", "the lowest"
-- Continuations: "which one", "what about the other"
-- Comparisons: "both", "all of them", "the same"
-
-Check for "Previous query goal:" in the conversation context to identify the previous goal.
-
-Examples:
-- Previous goal: AWARENESS, Question: "How much for the best one?" → Maintain AWARENESS
-- Previous goal: ENGAGEMENT, Question: "Should I invest there?" → Maintain ENGAGEMENT
-- Previous goal: AWARENESS, Question: "What's the ROAS?" → Switch to CONVERSION (explicit metric)
+  IMPORTANT: Explicit metric keywords (check #1) ALWAYS override previous context.
+  Examples:
+  - Previous: CONVERSION, Current: "What about impressions?" → AWARENESS (explicit keyword)
+  - Previous: AWARENESS, Current: "Show me the CTR" → ENGAGEMENT (explicit keyword)
+  - Previous: ENGAGEMENT, Current: "How much there?" → ENGAGEMENT (follow-up, no new keyword)
   
   STEP 2: Generate the SQL query using this schema:
   
