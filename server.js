@@ -556,32 +556,51 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, goal, agent
   
   let userPrompt;
   
-  if (isStrategy) {
-    // Strategy prompt using best practices
-    userPrompt = `Analyze this marketing data and provide strategic recommendations.
-
+if (isStrategy) {
+  // Strategy prompt with goal awareness
+  let strategyMetric = '';
+  let strategyInstructions = '';
+  
+  if (goal === 'AWARENESS') {
+    strategyMetric = 'CPM (cost per 1000 impressions)';
+    strategyInstructions = `- For CUT: Remove budget from highest CPM (least efficient) platforms
+- For ADD: Allocate to lowest CPM platforms (most reach per dollar)
+- For REALLOCATE: Move from high CPM to low CPM platforms`;
+  } else if (goal === 'ENGAGEMENT') {
+    strategyMetric = 'CTR and cost per click';
+    strategyInstructions = `- For CUT: Remove from lowest CTR platforms
+- For ADD: Allocate to highest CTR platforms
+- For REALLOCATE: Move from low CTR to high CTR platforms`;
+  } else {
+    strategyMetric = 'ROAS';
+    strategyInstructions = `- For CUT: Remove from lowest ROAS segments until target reached
+- For ADD: Distribute using performance tiers (50% top, 30% mid, 20% low)
+- For REALLOCATE: Move 30-40% from worst to best performers`;
+  }
+  
+  userPrompt = `Analyze this marketing data and provide strategic recommendations.
 <conversation_context>
 """
 ${contextString}
 """
 </conversation_context>
-
 <current_question>
 """
 ${currentQuestion}
 """
 </current_question>
-
 <context>
 SQL Query: ${sql}
 </context>
-
 <data>
 """
 ${formattedResults}
 """
 </data>
-
+<goal_context>
+User's optimization goal: ${goal}
+Key metric to optimize: ${strategyMetric}
+</goal_context>
 <instructions>
 Step 1: Read the conversation context. When the user uses pronouns like "there", "it", "that", refer to the previously mentioned item.
 Step 2: Identify the budget action type
@@ -590,13 +609,10 @@ Step 2: Identify the budget action type
 - REALLOCATE: "optimize", "shift", "move budget" → Keep total budget same
 Step 3: Identify the dimension in the data
 - Look at the data keys: platform, region, age_group, or gender
-Step 4: Apply the appropriate strategy
-- For CUT: Remove from lowest ROAS segments until target reached
-- For ADD: Distribute using performance tiers (50% top, 30% mid, 20% low)
-- For REALLOCATE: Move 30-40% from worst to best performers
-Step 5: Calculate exact impact using actual ROAS values
+Step 4: Apply the appropriate strategy based on the goal
+${strategyInstructions}
+Step 5: Calculate exact impact using the key metric (${strategyMetric})
 </instructions>
-
 <formatting>
 """
 - Bold all numbers: **$75,000**, **5x**, **2.5%**
@@ -605,37 +621,75 @@ Step 5: Calculate exact impact using actual ROAS values
 - Never use markdown tables
 """
 </formatting>
-
 <examples>
-Example 1 - Adding New Budget:
-User: "I have $100k to distribute across platforms"
+Example 1 - Adding Budget for ${goal}:
+User: "I have $100k to invest"
 Response Structure:
-**Current Performance:**
-→ **TikTok**: **$70k** spend, **8x** ROAS
-→ **YouTube**: **$71k** spend, **5x** ROAS
-[etc.]
-
+**Current Performance (${strategyMetric}):**
+→ Platform rankings by ${strategyMetric}
 **Recommendation:**
-Add **$100k** distributed by performance:
-→ **TikTok**: +**$50k** (top tier gets 50%)
-→ **YouTube**: +**$30k** (second tier gets 30%)
-→ **Instagram**: +**$20k** (lower tiers share 20%)
+Add **$100k** distributed by ${strategyMetric} performance
 
 Example 2 - Cutting Budget:
 User: "Cut $100k from total budget"
 Response Structure:
 **Recommendation:**
-Remove **$100k** from lowest performers:
-→ **Facebook**: -**$50k** (from **$71k** to **$21k**)
-→ **Snapchat**: -**$50k** (from **$73k** to **$23k**)
-Total budget: **$360k** → **$260k**
+Remove **$100k** from worst ${strategyMetric} performers
 </examples>
-
 Generate your response following the structure shown in the examples.`;
     
+} else {
+  // Regular query prompt with goal-specific handling
+  
+  // Add goal-specific instructions
+  let goalInstructions = '';
+  
+  if (goal === 'AWARENESS') {
+    goalInstructions = `
+<goal_context>
+The user's goal is BRAND AWARENESS. They want to maximize reach and visibility.
+</goal_context>
+
+<metrics_priority>
+Step 1: Lead with total impressions (reach metrics)
+Step 2: Calculate and emphasize CPM (cost per 1000 impressions)  
+Step 3: Identify platforms with lowest CPM (most efficient for reach)
+Step 4: DO NOT lead with ROAS or revenue for awareness questions
+</metrics_priority>
+
+<example_response_pattern>
+Good: "YouTube delivers the highest reach with **147M impressions** at **$0.48 CPM**, making it the most cost-efficient for brand visibility."
+Bad: "TikTok has the highest ROAS at 8x..."
+</example_response_pattern>`;
+  } else if (goal === 'ENGAGEMENT') {
+    goalInstructions = `
+<goal_context>
+The user's goal is ENGAGEMENT. They want clicks, traffic, and interactions.
+</goal_context>
+
+<metrics_priority>
+Step 1: Lead with CTR and total clicks
+Step 2: Show video completion rates if relevant
+Step 3: Calculate cost per click
+Step 4: Identify platforms with highest engagement rates
+</metrics_priority>`;
   } else {
-    // Regular query prompt with context handling
-    userPrompt = `Answer this marketing question using the provided data.
+    // CONVERSION (default)
+    goalInstructions = `
+<goal_context>
+The user's goal is CONVERSIONS/SALES. They want revenue and ROI.
+</goal_context>
+
+<metrics_priority>
+Step 1: Lead with ROAS and revenue metrics
+Step 2: Show CPA and conversion rates
+Step 3: Focus on profitability and efficiency
+</metrics_priority>`;
+  }
+  
+  userPrompt = `Answer this marketing question using the provided data.
+
+${goalInstructions}
 
 <conversation_context>
 """
@@ -667,11 +721,12 @@ ${formattedResults}
 </data>
 
 <instructions>
-Step 1: Check if the user is using pronouns that refer to previous context
-Step 2: If yes, identify the specific item from the conversation context
-Step 3: Answer focusing ONLY on that specific item, not all data
-Step 4: If no pronouns, answer the question directly using exact numbers
-Step 5: Keep response concise (2-3 paragraphs maximum)
+Step 1: Read the goal_context to understand what metrics matter most
+Step 2: Check if the user is using pronouns that refer to previous context
+Step 3: Analyze data focusing on the metrics_priority for this goal
+Step 4: Structure response to lead with most relevant metrics
+Step 5: Make recommendations based on the goal (e.g., lowest CPM for awareness)
+Step 6: Keep response concise (2-3 paragraphs maximum)
 </instructions>
 
 <formatting>
@@ -693,7 +748,7 @@ Response: The gender with the highest **CTR** is **unknown** at **2.5%**, follow
 </example>
 
 Generate your answer now.`;
-  }
+}
   
   try {
     const response = await callLLM(systemPrompt, userPrompt, isStrategy ? 2000 : 1500);
