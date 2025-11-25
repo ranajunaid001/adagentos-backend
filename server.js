@@ -126,17 +126,38 @@ SQL: [your SQL query here]
 If the question cannot be answered with the available data, explain what data is available instead of generating SQL.`;
 
   try {
-    const response = await callLLM(systemPrompt, userPrompt, 500);
-    console.log('Raw LLM Response:', response);
-    const content = response.trim();
+  const response = await callLLM(systemPrompt, userPrompt, 500);
+  console.log('Raw LLM Response:', response);
+  
+  const content = response.trim();
+  
+  // Parse the response to extract goal and SQL
+  let goal = 'CONVERSION'; // default
+  let sql = content; // fallback to full content
+
+  // Check if response contains GOAL: format
+  if (content.includes('GOAL:') && content.includes('SQL:')) {
+    const lines = content.split('\n');
+    const goalLine = lines.find(line => line.startsWith('GOAL:'));
+    const sqlStart = content.indexOf('SQL:');
     
-    // Check if it's SQL or conversational
-    const isSQL = content.toUpperCase().includes('SELECT');
+    if (goalLine) {
+      goal = goalLine.replace('GOAL:', '').trim();
+    }
+    if (sqlStart !== -1) {
+      sql = content.substring(sqlStart + 4).trim();
+    }
+  }
+
+  // Check if it's SQL or conversational
+  const isSQL = sql.toUpperCase().includes('SELECT');
+  
+  return {
+    isSQL,
+    content: sql,  // Return just the SQL part
+    goal: goal     // Add the goal to the return
+  };
     
-    return {
-      isSQL,
-      content
-    };
   } catch (error) {
     console.error('Query Generator Agent Error:', error);
     throw error;
