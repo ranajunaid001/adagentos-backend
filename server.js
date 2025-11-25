@@ -840,8 +840,9 @@ app.post('/chat', async (req, res) => {
     const answer = await answerGeneratorAgent(
       contextString + 'Current question: ' + message,
       result.rawData,
+      sql,
       queryResult.goal  // Pass the goal here
-      sql
+      
     );
     
     if (result.visualization) {
