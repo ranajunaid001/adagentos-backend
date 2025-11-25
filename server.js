@@ -805,6 +805,28 @@ app.post('/chat', async (req, res) => {
       });
       contextString += '\n';
     }
+
+    // Extract previous goal from conversation history
+    let previousGoal = null;
+    if (conversationHistory && conversationHistory.length > 0) {
+      // Look through history from newest to oldest to find the most recent goal
+      for (let i = conversationHistory.length - 1; i >= 0; i--) {
+        if (conversationHistory[i].goal) {
+          previousGoal = conversationHistory[i].goal;
+          break;
+        }
+      }
+    }
+    
+    // Add previous goal to context
+    if (previousGoal) {
+      contextString += `Previous query goal: ${previousGoal}\n\n`;
+    }
+    
+    // Then your existing queryGeneratorAgent call continues as normal:
+    // const queryResult = await queryGeneratorAgent(
+    //   contextString + 'Current question: ' + message
+    // );
     
     // Query Generator Agent
     analysisSteps.push('🔍 Analyzing what data is needed...');
