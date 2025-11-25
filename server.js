@@ -702,6 +702,12 @@ app.post('/chat', async (req, res) => {
     console.log('\n=== New Chat Request ===');
     console.log('User message:', message);
     
+    // Track analysis steps
+    const analysisSteps = [];
+    
+    // Step 1: Understanding
+    analysisSteps.push(`🤔 User is asking: "${message}"`);
+    
     // Build conversation context
     let contextString = '';
     if (conversationHistory && conversationHistory.length > 0) {
@@ -712,12 +718,10 @@ app.post('/chat', async (req, res) => {
       contextString += '\n';
     }
     
-    // Handle both old and new config formats
-
-    
-    // Step 1: Query Generator Agent
+    // Query Generator Agent
+    analysisSteps.push('🔍 Analyzing what data is needed...');
     const queryResult = await queryGeneratorAgent(
-      contextString + 'Current question: ' + message, 
+      contextString + 'Current question: ' + message
     );
     
     // If not SQL (conversational response), return immediately
@@ -727,7 +731,8 @@ app.post('/chat', async (req, res) => {
         success: true,
         sql: null,
         answer: queryResult.content,
-        visualization: null
+        visualization: null,
+        analysisSteps: analysisSteps
       });
     }
     
@@ -735,6 +740,28 @@ app.post('/chat', async (req, res) => {
     
     // Remove trailing semicolon if present
     sql = sql.replace(/;\s*$/, '').trim();
+    
+    // Extract what we're analyzing from SQL
+    if (sql.includes('video_ad_performance')) {
+      analysisSteps.push('🗄️ Accessing: video_ad_performance table');
+    }
+    
+    // Detect what metrics we're looking at
+    const metrics = [];
+    if (sql.includes('SUM(revenue) / NULLIF(SUM(spend)')) metrics.push('ROAS');
+    if (sql.includes('SUM(clicks)') && sql.includes('impressions')) metrics.push('CTR');
+    if (sql.includes('SUM(spend) / NULLIF(SUM(conversions)')) metrics.push('CPA');
+    if (sql.includes('views_100')) metrics.push('Video Completion Rate');
+    
+    if (metrics.length > 0) {
+      analysisSteps.push(`📊 Calculating: ${metrics.join(', ')}`);
+    }
+    
+    // Detect grouping
+    const groupByMatch = sql.match(/GROUP BY\s+(\w+)/i);
+    if (groupByMatch) {
+      analysisSteps.push(`🎯 Comparing by: ${groupByMatch[1]}`);
+    }
     
     console.log('Generated SQL:', sql);
     
@@ -746,15 +773,23 @@ app.post('/chat', async (req, res) => {
         success: false,
         sql: sql,
         answer: "I had trouble creating a safe query for that question. Could you try asking in a different way?",
-        visualization: null
+        visualization: null,
+        analysisSteps: analysisSteps
       });
     }
     
-    // Step 3: Execute SQL and aggregate (now with userQuestion for metric detection)
+    // Step 3: Execute SQL and aggregate
+    analysisSteps.push('🔄 Running analysis on October 2025 data...');
     let result;
     try {
       result = await executeAndAggregate(sql, message);
       console.log('Query executed successfully');
+      
+      // Add data volume info
+      if (result.rawData && typeof result.rawData === 'object') {
+        const count = Object.keys(result.rawData).length;
+        analysisSteps.push(`📈 Found: ${count} data segments to analyze`);
+      }
       
     } catch (error) {
       console.log('SQL execution failed:', error.message);
@@ -762,16 +797,22 @@ app.post('/chat', async (req, res) => {
         success: false,
         sql: sql,
         answer: "I ran into an issue retrieving that data. Could you try rephrasing your question? For example: 'Which platform has the best ROAS?' or 'Show me conversion rates by age group'",
-        visualization: null
+        visualization: null,
+        analysisSteps: analysisSteps
       });
     }
     
     // Step 4: Answer Generator Agent
+    analysisSteps.push('✍️ Generating insights and recommendations...');
     const answer = await answerGeneratorAgent(
       contextString + 'Current question: ' + message,
       result.rawData,
       sql
     );
+    
+    if (result.visualization) {
+      analysisSteps.push('📊 Preparing visualization...');
+    }
     
     console.log('Answer generated successfully');
     console.log('Visualization type:', result.visualization ? result.visualization.type : 'none');
@@ -780,7 +821,8 @@ app.post('/chat', async (req, res) => {
       success: true,
       sql: sql,
       answer: answer,
-      visualization: result.visualization
+      visualization: result.visualization,
+      analysisSteps: analysisSteps  // NEW: Send analysis steps
     });
     
   } catch (error) {
@@ -789,7 +831,8 @@ app.post('/chat', async (req, res) => {
       success: false,
       sql: null,
       answer: 'I encountered an unexpected error. Please try again or rephrase your question.',
-      visualization: null
+      visualization: null,
+      analysisSteps: ['🤔 Understanding request...', '❌ Encountered an error']
     });
   }
 });
