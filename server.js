@@ -440,7 +440,7 @@ async function executeAndAggregate(sql, userQuestion, goal) {
     const aggregated = aggregateByDimension(filteredData, visualization.dimension);
     
     // Detect requested metrics
-    const requestedMetrics = detectRequestedMetrics(sql, userQuestion, queryResult.goal);
+    const requestedMetrics = detectRequestedMetrics(sql, userQuestion, goal);
     
     return {
       visualization: {
