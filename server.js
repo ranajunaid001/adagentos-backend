@@ -104,6 +104,20 @@ async function queryGeneratorAgent(userQuestion, customPrompt) {
   ENGAGEMENT GOAL - Keywords: clicks, CTR, traffic, visitors, engagement, interaction, video completion, watch, "maintain traffic", "increase traffic", "website traffic", "drive traffic"
   
   If no clear goal is detected, assume CONVERSION.
+
+  FOLLOW-UP DETECTION:
+If the question contains these follow-up indicators AND no explicit new goal keyword, maintain the goal from the previous query:
+- Pronouns: "there", "it", "that", "those"  
+- References: "the best one", "the top performer", "the highest", "the lowest"
+- Continuations: "which one", "what about the other"
+- Comparisons: "both", "all of them", "the same"
+
+Check for "Previous query goal:" in the conversation context to identify the previous goal.
+
+Examples:
+- Previous goal: AWARENESS, Question: "How much for the best one?" → Maintain AWARENESS
+- Previous goal: ENGAGEMENT, Question: "Should I invest there?" → Maintain ENGAGEMENT
+- Previous goal: AWARENESS, Question: "What's the ROAS?" → Switch to CONVERSION (explicit metric)
   
   STEP 2: Generate the SQL query using this schema:
   
