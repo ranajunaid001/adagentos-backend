@@ -119,9 +119,11 @@ async function queryGeneratorAgent(userQuestion, customPrompt) {
 
   const userPrompt = `Convert this question to SQL: "${userQuestion}"
 
-If the question cannot be answered with the available data, explain what data is available instead of generating SQL.
+Return your response in this format:
+GOAL: [AWARENESS/CONVERSION/ENGAGEMENT]
+SQL: [your SQL query here]
 
-Return ONLY the SQL query, no explanations or code blocks.`;
+If the question cannot be answered with the available data, explain what data is available instead of generating SQL.`;
 
   try {
     const response = await callLLM(systemPrompt, userPrompt, 500);
