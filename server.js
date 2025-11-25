@@ -212,7 +212,16 @@ function validateSQL(sql) {
 }
 
 // Detect requested metrics from SQL and user question
-function detectRequestedMetrics(sql, userQuestion) {
+function detectRequestedMetrics(sql, userQuestion, goal) {
+  // Goal-based metric detection takes priority
+  if (goal === 'AWARENESS') {
+    return ['impressions', 'cpm'];
+  } else if (goal === 'ENGAGEMENT') {
+    return ['ctr'];
+  } else if (goal === 'CONVERSION') {
+    return ['financial'];
+  }
+
   const upperSQL = sql.toUpperCase();
   const lowerQuestion = userQuestion.toLowerCase();
   
