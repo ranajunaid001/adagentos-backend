@@ -912,7 +912,8 @@ app.post('/chat', async (req, res) => {
       sql: sql,
       answer: answer,
       visualization: result.visualization,
-      analysisSteps: analysisSteps  // NEW: Send analysis steps
+      analysisSteps: analysisSteps, // NEW: Send analysis steps
+      goal: queryResult.goal 
     });
     
   } catch (error) {
