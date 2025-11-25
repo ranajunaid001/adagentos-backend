@@ -101,7 +101,7 @@ async function queryGeneratorAgent(userQuestion, customPrompt) {
   
   AWARENESS GOAL - Keywords: awareness, reach, visibility, impressions, brand, exposure, eyeballs, CPM
   CONVERSION GOAL - Keywords: sales, revenue, ROAS, conversions, ROI, profit, CPA, purchase, invest, budget
-  ENGAGEMENT GOAL - Keywords: clicks, CTR, traffic, visitors, engagement, interaction, video completion, watch
+  ENGAGEMENT GOAL - Keywords: clicks, CTR, traffic, visitors, engagement, interaction, video completion, watch, "maintain traffic", "increase traffic", "website traffic", "drive traffic"
   
   If no clear goal is detected, assume CONVERSION.
   
