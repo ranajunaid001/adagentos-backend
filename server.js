@@ -447,6 +447,7 @@ async function executeAndAggregate(sql, userQuestion) {
         type: 'comparison',
         dimension: visualization.dimension,
         requestedMetrics: requestedMetrics,  // NEW: Pass requested metrics
+        goal: goal,  // ADD THIS LINE
         data: aggregated
       },
       rawData: aggregated
