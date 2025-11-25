@@ -125,7 +125,7 @@ Return ONLY the SQL query, no explanations or code blocks.`;
 
   try {
     const response = await callLLM(systemPrompt, userPrompt, 500);
-    
+    console.log('Raw LLM Response:', response);
     const content = response.trim();
     
     // Check if it's SQL or conversational
