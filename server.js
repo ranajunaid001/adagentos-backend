@@ -525,7 +525,7 @@ function aggregateByDimension(data, dimension) {
 }
 
 // Agent 2: Answer Generator Agent
-async function answerGeneratorAgent(userQuestion, queryResults, sql, agentPrompt) {
+async function answerGeneratorAgent(userQuestion, queryResults, sql, goal, agentPrompt) {
   console.log('AnswerGeneratorAgent: Generating answer');
   
   // Extract conversation context and current question
