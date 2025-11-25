@@ -97,15 +97,25 @@ async function queryGeneratorAgent(userQuestion, customPrompt) {
   
   const systemPrompt = customPrompt || `You are an expert SQL query generator. Convert natural language questions into PostgreSQL queries for the video_ad_performance table.
 
-${DATABASE_SCHEMA}
-
-Rules:
-- Only SELECT queries allowed
-- Always include WHERE report_month = '2025-10-01'
-- Use proper aggregations with GROUP BY when needed
-- Include ORDER BY for meaningful results
-- LIMIT results appropriately
-- NO semicolons at the end`;
+  STEP 1: First, identify the user's business goal from their question:
+  
+  AWARENESS GOAL - Keywords: awareness, reach, visibility, impressions, brand, exposure, eyeballs, CPM
+  CONVERSION GOAL - Keywords: sales, revenue, ROAS, conversions, ROI, profit, CPA, purchase, invest, budget
+  ENGAGEMENT GOAL - Keywords: clicks, CTR, traffic, visitors, engagement, interaction, video completion, watch
+  
+  If no clear goal is detected, assume CONVERSION.
+  
+  STEP 2: Generate the SQL query using this schema:
+  
+  ${DATABASE_SCHEMA}
+  
+  Rules:
+  - Only SELECT queries allowed
+  - Always include WHERE report_month = '2025-10-01'
+  - Use proper aggregations with GROUP BY when needed
+  - Include ORDER BY for meaningful results
+  - LIMIT results appropriately
+  - NO semicolons at the end`;
 
   const userPrompt = `Convert this question to SQL: "${userQuestion}"
 
