@@ -161,6 +161,11 @@ async function queryGeneratorAgent(userQuestion, customPrompt) {
   - "Tell me about TikTok" → DEEP_DIVE: WHERE platform = 'TikTok' 
   - "Compare all platforms" → COMPARISON: GROUP BY platform
   - "What's my total spend?" → OVERVIEW: No GROUP BY
+
+    SPECIAL HANDLING FOR BUDGET QUESTIONS:
+  - If user asks about cutting/adding/investing budget, ALWAYS use GROUP BY platform
+  - Include these fields: platform, roas, spend, revenue
+  - Order by ROAS ASC for cuts (worst first), DESC for investments (best first)
   
   STEP 3: Generate the SQL query using this schema:
   
