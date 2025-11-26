@@ -170,18 +170,23 @@ If the question cannot be answered with the available data, explain what data is
   
   const content = response.trim();
   
-  // Parse the response to extract goal and SQL
+  // Parse the response to extract goal, query type, and SQL
   let goal = 'CONVERSION'; // default
+  let queryType = 'COMPARISON'; // default
   let sql = content; // fallback to full content
-
-  // Check if response contains GOAL: format
+  
+  // Check if response contains the expected format
   if (content.includes('GOAL:') && content.includes('SQL:')) {
     const lines = content.split('\n');
     const goalLine = lines.find(line => line.startsWith('GOAL:'));
+    const queryTypeLine = lines.find(line => line.startsWith('QUERY_TYPE:'));
     const sqlStart = content.indexOf('SQL:');
     
     if (goalLine) {
       goal = goalLine.replace('GOAL:', '').trim();
+    }
+    if (queryTypeLine) {
+      queryType = queryTypeLine.replace('QUERY_TYPE:', '').trim();
     }
     if (sqlStart !== -1) {
       sql = content.substring(sqlStart + 4).trim();
