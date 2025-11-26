@@ -726,7 +726,7 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, goal, query
   
   
   // System prompt - concise and focused
-  const systemPrompt = agentPrompt || `You are a marketing performance analyst. Transform data into actionable insights with precise numbers and clear recommendations.`;
+  systemPrompt = agentPrompt || `You are a marketing performance analyst. Transform data into actionable insights with precise numbers and clear recommendations.`;
   
   // Sort data by ROAS for better analysis
   let sortedResults = queryResults;
@@ -738,7 +738,7 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, goal, query
   
   const formattedResults = JSON.stringify(sortedResults, null, 2);
   
-  let userPrompt;
+  userPrompt;
   
 if (isStrategy) {
   // Strategy prompt with goal awareness
