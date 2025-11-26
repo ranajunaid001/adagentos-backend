@@ -258,6 +258,13 @@ function validateSQL(sql) {
 function detectRequestedMetrics(sql, userQuestion, goal) {
   const upperSQL = sql.toUpperCase();
   const lowerQuestion = userQuestion.toLowerCase();
+
+  // DEBUG LOGGING
+  console.log('detectRequestedMetrics called with:');
+  console.log('Question:', lowerQuestion);
+  console.log('Has "vs":', lowerQuestion.includes(' vs '));
+  console.log('Has "compare":', lowerQuestion.includes('compare'));
+  console.log('Has specific metrics:', lowerQuestion.match(/impressions|ctr|clicks|roas|revenue|spend|cpm|cpa/));
   
   // Check for comprehensive comparisons FIRST (before goal-based detection)
   if ((lowerQuestion.includes(' vs ') || lowerQuestion.includes(' versus ') || 
