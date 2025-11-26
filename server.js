@@ -453,7 +453,7 @@ function isStrategyQuery(userQuestion) {
   const strategyKeywords = [
     'invest', 'budget', 'allocate', 'reallocate', 'shift', 'optimize',
     'improve', 'maximize', 'should i', 'what should', 'how can i',
-    'recommend', 'suggestion', 'advice', 'strategy', 'best way'
+    'recommend', 'suggestion', 'advice', 'strategy', 'best way', 'cut', 'reduce', 'decrease', 'save'
   ];
   
   const lowerQuestion = userQuestion.toLowerCase();
