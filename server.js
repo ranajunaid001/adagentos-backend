@@ -414,7 +414,7 @@ function isStrategyQuery(userQuestion) {
 }
 
 // Execute SQL and aggregate data
-async function executeAndAggregate(sql, userQuestion, goal) {
+async function executeAndAggregate(sql, userQuestion, goal, queryType) {
   console.log('Executing SQL...');
   
   try {
@@ -479,6 +479,7 @@ async function executeAndAggregate(sql, userQuestion, goal) {
         dimension: visualization.dimension,
         requestedMetrics: requestedMetrics,  // NEW: Pass requested metrics
         goal: goal,  // ADD THIS LINE
+        queryType: queryType,
         data: aggregated
       },
       rawData: aggregated
@@ -947,7 +948,7 @@ app.post('/chat', async (req, res) => {
     analysisSteps.push('🔄 Running analysis on October 2025 data...');
     let result;
     try {
-      result = await executeAndAggregate(sql, message, queryResult.goal);
+      result = await executeAndAggregate(sql, message, queryResult.goal, queryResult.queryType) );
       console.log('Query executed successfully');
       
       // Add data volume info
