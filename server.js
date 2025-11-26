@@ -664,6 +664,9 @@ function aggregateByDimension(data, dimension) {
 // Agent 2: Answer Generator Agent
 async function answerGeneratorAgent(userQuestion, queryResults, sql, goal, queryType, agentPrompt) {
   console.log('AnswerGeneratorAgent: Generating answer');
+
+  let systemPrompt = '';
+  let userPrompt = '';
   
   // Extract conversation context and current question
   let contextString = '';
@@ -689,7 +692,7 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, goal, query
     userPrompt = `Create a strategic executive summary for ${platformName}'s performance.
   
   <data>
-  ${formattedResults}
+  ${JSON.stringify(queryResults, null, 2)}
   </data>
   
   Structure your response EXACTLY like this:
