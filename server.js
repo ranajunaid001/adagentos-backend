@@ -117,6 +117,18 @@ async function queryGeneratorAgent(userQuestion, customPrompt) {
   
   4. DEFAULT: If no clear goal detected, assume CONVERSION.
 
+  5. SPECIAL CASE - Comprehensive Comparisons:
+     If the user asks to compare entities (using "vs", "versus", "compare X and Y") WITHOUT specifying a metric:
+     - Set GOAL: CONVERSION (default to business performance)
+     - Include multiple key metrics in the SQL: ROAS, revenue, spend, CTR, impressions, CPM
+     - This ensures a complete performance comparison
+     
+     Examples:
+     - "TikTok vs Instagram" → Include ROAS, revenue, CTR, impressions, CPM
+     - "Compare TikTok and Instagram" → Include all key metrics
+     - "TikTok vs Instagram impressions" → AWARENESS goal, focus on impressions/CPM
+     - "TikTok vs Instagram ROAS" → CONVERSION goal, focus on ROAS/revenue
+
   IMPORTANT: Explicit metric keywords (check #1) ALWAYS override previous context.
   Examples:
   - Previous: CONVERSION, Current: "What about impressions?" → AWARENESS (explicit keyword)
