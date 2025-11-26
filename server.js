@@ -256,7 +256,24 @@ function validateSQL(sql) {
 
 // Detect requested metrics from SQL and user question
 function detectRequestedMetrics(sql, userQuestion, goal) {
-  // Goal-based metric detection takes priority
+  const upperSQL = sql.toUpperCase();
+  const lowerQuestion = userQuestion.toLowerCase();
+  
+  // Check for comprehensive comparisons FIRST (before goal-based detection)
+  if ((lowerQuestion.includes(' vs ') || lowerQuestion.includes(' versus ') || 
+       lowerQuestion.includes('compare ')) && 
+      !lowerQuestion.match(/impressions|ctr|clicks|roas|revenue|spend|cpm|cpa/)) {
+    return ['comprehensive'];
+  }
+  
+  // Check for specific metrics BEFORE goal-based defaults
+  if (upperSQL.includes('VIDEO_COMPLETION_RATE') || 
+      lowerQuestion.includes('video completion') || 
+      lowerQuestion.includes('completion rate')) {
+    return ['video_completion_rate'];
+  }
+  
+  // THEN fall back to goal-based detection
   if (goal === 'AWARENESS') {
     return ['impressions', 'cpm'];
   } else if (goal === 'ENGAGEMENT') {
