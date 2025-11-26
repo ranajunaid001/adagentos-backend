@@ -282,8 +282,6 @@ function detectRequestedMetrics(sql, userQuestion, goal) {
     return ['financial'];
   }
 
-  const upperSQL = sql.toUpperCase();
-  const lowerQuestion = userQuestion.toLowerCase();
   
   // Video metrics
   if (upperSQL.includes('VIDEO_COMPLETION_RATE') || 
