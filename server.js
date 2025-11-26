@@ -270,6 +270,7 @@ function detectRequestedMetrics(sql, userQuestion, goal) {
   if ((lowerQuestion.includes(' vs ') || lowerQuestion.includes(' versus ') || 
        lowerQuestion.includes('compare ')) && 
       !lowerQuestion.match(/impressions|ctr|clicks|roas|revenue|spend|cpm|cpa/)) {
+    console.log('Returning comprehensive!');
     return ['comprehensive'];
   }
   
