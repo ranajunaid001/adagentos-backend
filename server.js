@@ -199,7 +199,8 @@ If the question cannot be answered with the available data, explain what data is
   return {
     isSQL,
     content: sql,  // Return just the SQL part
-    goal: goal     // Add the goal to the return
+    goal: goal,
+    queryType: queryType  // ADD THIS LINE// Add the goal to the return
   };
     
   } catch (error) {
