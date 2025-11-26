@@ -948,7 +948,7 @@ app.post('/chat', async (req, res) => {
     analysisSteps.push('🔄 Running analysis on October 2025 data...');
     let result;
     try {
-      result = await executeAndAggregate(sql, message, queryResult.goal, queryResult.queryType) );
+      result = await executeAndAggregate(sql, message, queryResult.goal, queryResult.queryType );
       console.log('Query executed successfully');
       
       // Add data volume info
