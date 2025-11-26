@@ -522,6 +522,23 @@ async function executeAndAggregate(sql, userQuestion, goal, queryType) {
           rawData: singleResult
         };
       }
+            // Check if this is an executive summary
+      if (queryType === 'EXECUTIVE_SUMMARY') {
+        // Extract platform name from SQL
+        const platformMatch = sql.match(/platform\s*=\s*'([^']+)'/i);
+        const platform = platformMatch ? platformMatch[1] : 'Platform';
+        
+        return {
+          visualization: {
+            type: 'executive_summary',
+            platform: platform,
+            queryType: queryType,
+            goal: goal,
+            data: singleResult
+          },
+          rawData: singleResult
+        };
+      }
       
       // Regular single result (overview)
       return {
