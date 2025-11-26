@@ -690,34 +690,43 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, goal, query
     systemPrompt = `You are a C-level marketing advisor providing executive insights.`;
     
     userPrompt = `Create a strategic executive summary for ${platformName}'s performance.
-  
-  <data>
-  ${JSON.stringify(queryResults, null, 2)}
-  </data>
-  
-  Structure your response EXACTLY like this:
-  
-  **Performance Status: [Strong/Moderate/Needs Attention]**
-  Based on ROAS (${metrics.roas || 0}x)
-  
-  **Key Strengths:**
-  → [Top performing metric with value]
-  → [Second strength if any]
-  
-  **Strategic Concern:**
-  → [Main weakness or risk]
-  
-  **Budget Recommendation:**
-  Current spend: $${((metrics.spend || 0)/1000).toFixed(0)}k
-  Recommendation: [Increase by X% / Maintain / Decrease by X%]
-  Rationale: [One sentence explaining why]
-  
-  **Next Steps:**
-  1. [Immediate action - specific and measurable]
-  2. [30-day optimization]
-  
-  Keep it concise for executive review.`;
-  }
+      
+      <data>
+      ${JSON.stringify(queryResults, null, 2)}
+      </data>
+      
+      Structure your response EXACTLY like this:
+      
+      **Performance Status: [Strong/Moderate/Needs Attention]**
+      Based on ROAS (${metrics.roas || 0}x)
+      
+      **Key Strengths:**
+      → [Top performing metric with value]
+      → [Second strength if any]
+      
+      **Strategic Concern:**
+      → [Main weakness or risk]
+      
+      **Budget Recommendation:**
+      Current spend: $${((metrics.spend || 0)/1000).toFixed(0)}k
+      Recommendation: [Increase by X% / Maintain / Decrease by X%]
+      Rationale: [One sentence explaining why]
+      
+      **Next Steps:**
+      1. [Immediate action - specific and measurable]
+      2. [30-day optimization]
+      
+      Keep it concise for executive review.`;
+      
+      // ADD THIS SECTION
+      try {
+        const response = await callLLM(systemPrompt, userPrompt, 1500);
+        return response;
+      } catch (error) {
+        console.error('Error in executive summary generation:', error);
+        return "I encountered an error generating the executive summary.";
+      }
+    }
   
   // Detect if this is a strategy question
   const isStrategy = isStrategyQuery(currentQuestion);
