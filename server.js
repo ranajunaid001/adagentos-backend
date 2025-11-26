@@ -459,10 +459,31 @@ async function executeAndAggregate(sql, userQuestion, goal, queryType) {
     const visualization = detectVisualization(sql);
     
     // FIX: If single query (no GROUP BY), return null for visualization
+    // Handle single query results
     if (visualization.type === 'single') {
       const singleResult = aggregateSingleResult(filteredData);
+      
+      // Check if this is a deep dive on a specific platform
+      if (queryType === 'DEEP_DIVE') {
+        // Extract platform name from SQL
+        const platformMatch = sql.match(/platform\s*=\s*'([^']+)'/i);
+        const platform = platformMatch ? platformMatch[1] : 'Platform';
+        
+        return {
+          visualization: {
+            type: 'deep_dive',
+            platform: platform,
+            queryType: queryType,
+            goal: goal,
+            data: singleResult
+          },
+          rawData: singleResult
+        };
+      }
+      
+      // Regular single result (overview)
       return {
-        visualization: null,  // FIX: No charts for single queries
+        visualization: null,
         rawData: singleResult
       };
     }
