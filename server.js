@@ -200,6 +200,7 @@ If the question cannot be answered with the available data, explain what data is
   let sql = content; // fallback to full content
   
   // Check if response contains the expected format
+  // Check if response contains the expected format
   if (content.includes('GOAL:') && content.includes('SQL:')) {
     const lines = content.split('\n');
     const goalLine = lines.find(line => line.startsWith('GOAL:'));
@@ -214,6 +215,20 @@ If the question cannot be answered with the available data, explain what data is
     }
     if (sqlStart !== -1) {
       sql = content.substring(sqlStart + 4).trim();
+    }
+    
+    // Force GROUP BY platform for budget strategy questions
+    if (isStrategyQuery(userQuestion) && !sql.toUpperCase().includes('GROUP BY')) {
+      // Add platform and metrics to SELECT if not there
+      if (!sql.toUpperCase().includes('PLATFORM')) {
+        sql = sql.replace(/SELECT/i, 'SELECT platform,');
+      }
+      // Add GROUP BY before ORDER BY
+      if (sql.toUpperCase().includes('ORDER BY')) {
+        sql = sql.replace(/ORDER BY/i, 'GROUP BY platform ORDER BY');
+      } else {
+        sql = sql + ' GROUP BY platform ORDER BY roas ASC';
+      }
     }
   }
 
