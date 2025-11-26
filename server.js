@@ -674,9 +674,54 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, goal, agent
     contextString = parts[0].trim();
     currentQuestion = parts[1].trim();
   }
+
+
+  const isExecutiveSummary = queryType === 'EXECUTIVE_SUMMARY';
+  
+  // ADD THE EXECUTIVE SUMMARY HANDLING HERE
+  if (isExecutiveSummary) {
+    // Extract platform name from the data
+    const platformName = Object.keys(sortedResults)[0] || 'Platform';
+    const metrics = sortedResults[platformName] || sortedResults;
+    
+    systemPrompt = `You are a C-level marketing advisor providing executive insights.`;
+    
+    userPrompt = `Create a strategic executive summary for ${platformName}'s performance.
+  
+  <data>
+  ${formattedResults}
+  </data>
+  
+  Structure your response EXACTLY like this:
+  
+  **Performance Status: [Strong/Moderate/Needs Attention]**
+  Based on ROAS (${metrics.roas || 0}x)
+  
+  **Key Strengths:**
+  → [Top performing metric with value]
+  → [Second strength if any]
+  
+  **Strategic Concern:**
+  → [Main weakness or risk]
+  
+  **Budget Recommendation:**
+  Current spend: $${((metrics.spend || 0)/1000).toFixed(0)}k
+  Recommendation: [Increase by X% / Maintain / Decrease by X%]
+  Rationale: [One sentence explaining why]
+  
+  **Next Steps:**
+  1. [Immediate action - specific and measurable]
+  2. [30-day optimization]
+  
+  Keep it concise for executive review.`;
+  }
+
   
   // Detect if this is a strategy question
   const isStrategy = isStrategyQuery(currentQuestion);
+  
+  
+  
   
   // System prompt - concise and focused
   const systemPrompt = agentPrompt || `You are a marketing performance analyst. Transform data into actionable insights with precise numbers and clear recommendations.`;
