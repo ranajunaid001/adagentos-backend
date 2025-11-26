@@ -529,6 +529,7 @@ async function executeAndAggregate(sql, userQuestion, goal, queryType) {
     // Detect requested metrics
     const requestedMetrics = detectRequestedMetrics(sql, userQuestion, goal);
     
+    console.log('About to return visualization with requestedMetrics:', requestedMetrics);
     return {
       visualization: {
         type: 'comparison',
