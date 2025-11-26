@@ -714,7 +714,7 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, goal, agent
   2. [30-day optimization]
   
   Keep it concise for executive review.`;
-
+  }
   
   // Detect if this is a strategy question
   const isStrategy = isStrategyQuery(currentQuestion);
