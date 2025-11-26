@@ -122,8 +122,28 @@ async function queryGeneratorAgent(userQuestion, customPrompt) {
   - Previous: CONVERSION, Current: "What about impressions?" → AWARENESS (explicit keyword)
   - Previous: AWARENESS, Current: "Show me the CTR" → ENGAGEMENT (explicit keyword)
   - Previous: ENGAGEMENT, Current: "How much there?" → ENGAGEMENT (follow-up, no new keyword)
+
+  STEP 2: Identify the query type:
+    A. DEEP DIVE (single entity analysis):
+     - Mentions specific platform: "tell me about TikTok", "show me Instagram stats", "how is Facebook performing"
+     - Asks for "all metrics" or "full breakdown" of a specific entity
+     - SQL: Use WHERE platform = 'specific_platform', NO GROUP BY
+     - Include multiple metrics in SELECT
   
-  STEP 2: Generate the SQL query using this schema:
+  B. COMPARISON (multi-entity analysis):
+     - Keywords: "compare", "across", "by platform", "which platform", "for each", "all platforms"
+     - SQL: Use GROUP BY for the requested dimension
+  
+  C. OVERVIEW (aggregated totals):
+     - Keywords: "overall", "total", "combined", "aggregate"
+     - SQL: No GROUP BY, aggregate all data
+  
+  Examples:
+  - "Show me all metrics for TikTok" → DEEP DIVE: WHERE platform = 'TikTok'
+  - "Compare ROAS by platform" → COMPARISON: GROUP BY platform
+  - "What's my total spend?" → OVERVIEW: No GROUP BY
+  
+  STEP 3: Generate the SQL query using this schema:
   
   ${DATABASE_SCHEMA}
   
