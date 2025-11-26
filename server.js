@@ -715,6 +715,14 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, goal, agent
   
   Keep it concise for executive review.`;
   }
+    try {
+      const response = await callLLM(systemPrompt, userPrompt, 1500);
+      return response;
+    } catch (error) {
+      console.error('Error in executive summary:', error);
+      return "Unable to generate executive summary.";
+    }
+  }
 
   
   // Detect if this is a strategy question
