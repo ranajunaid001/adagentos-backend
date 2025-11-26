@@ -159,6 +159,7 @@ async function queryGeneratorAgent(userQuestion, customPrompt) {
 
 Return your response in this format:
 GOAL: [AWARENESS/CONVERSION/ENGAGEMENT]
+QUERY_TYPE: [DEEP_DIVE/COMPARISON/OVERVIEW]
 SQL: [your SQL query here]
 
 If the question cannot be answered with the available data, explain what data is available instead of generating SQL.`;
