@@ -149,10 +149,17 @@ async function queryGeneratorAgent(userQuestion, customPrompt) {
   C. OVERVIEW (aggregated totals):
      - Keywords: "overall", "total", "combined", "aggregate"
      - SQL: No GROUP BY, aggregate all data
-  
+
+  D. EXECUTIVE_SUMMARY (strategic single entity analysis):
+     - Keywords: "executive summary for", "strategic view of", "CMO dashboard", "strategic analysis"
+     - Mentions specific platform with executive/strategic context
+     - SQL: Use WHERE platform = 'specific_platform', NO GROUP BY
+     - Include all key metrics for strategic decision making
+     
   Examples:
-  - "Show me all metrics for TikTok" → DEEP DIVE: WHERE platform = 'TikTok'
-  - "Compare ROAS by platform" → COMPARISON: GROUP BY platform
+  - "Executive summary for TikTok" → EXECUTIVE_SUMMARY: WHERE platform = 'TikTok'
+  - "Tell me about TikTok" → DEEP_DIVE: WHERE platform = 'TikTok' 
+  - "Compare all platforms" → COMPARISON: GROUP BY platform
   - "What's my total spend?" → OVERVIEW: No GROUP BY
   
   STEP 3: Generate the SQL query using this schema:
@@ -171,7 +178,7 @@ async function queryGeneratorAgent(userQuestion, customPrompt) {
 
 Return your response in this format:
 GOAL: [AWARENESS/CONVERSION/ENGAGEMENT]
-QUERY_TYPE: [DEEP_DIVE/COMPARISON/OVERVIEW]
+QUERY_TYPE: [DEEP_DIVE/COMPARISON/OVERVIEW/EXECUTIVE_SUMMARY]
 SQL: [your SQL query here]
 
 If the question cannot be answered with the available data, explain what data is available instead of generating SQL.`;
