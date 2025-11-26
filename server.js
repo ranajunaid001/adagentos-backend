@@ -681,8 +681,8 @@ async function answerGeneratorAgent(userQuestion, queryResults, sql, goal, query
   // ADD THE EXECUTIVE SUMMARY HANDLING HERE
   if (isExecutiveSummary) {
     // Extract platform name from the data
-    const platformName = Object.keys(sortedResults)[0] || 'Platform';
-    const metrics = sortedResults[platformName] || sortedResults;
+    const platformName = Object.keys(queryResults)[0] || 'Platform';
+    const metrics = queryResults[platformName] || queryResults;
     
     systemPrompt = `You are a C-level marketing advisor providing executive insights.`;
     
